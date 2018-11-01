@@ -10,7 +10,7 @@ import glob
 import subprocess
 
 
-def main(bidsdir, outputdir, outputspace, subject_label=(), force=False, mem_mb=18000, argstr=''):
+def main(bidsdir, outputdir, outputspace, subject_label=(), force=False, mem_mb=18000, argstr='', dryrun=False):
 
     # Default
     if not outputdir:
@@ -156,22 +156,23 @@ def main(bidsdir, outputdir, outputspace, subject_label=(), force=False, mem_mb=
             #                         Force stopping on first crash, even if a work directory was specified.
             #   --notrack             Opt-out of sending tracking information of this run to the FMRIPREP developers. This information helps to improve FMRIPREP and provides an indicator of real world usage crucial for obtaining funding.
 
-            command = """qsub -l walltime=24:00:00,mem={mem_mb}mb -N fmriprep_{sub_id} <<EOF
-                         module add fmriprep; source activate /opt/fmriprep
+            command = """qsub -l walltime=48:00:00,mem={mem_mb}mb -N fmriprep_{sub_id} <<EOF
+                         module add fmriprep; source activate /opt/fmriprep; export FSLOUTPUTTYPE=NIFTI_GZ; cd {pwd}
                          fmriprep {bidsdir} {outputdir} participant -w {workdir} --participant-label {sub_id} --output-space {outputspace} --mem_mb {mem_mb} --omp-nthreads 1 --nthreads 1 --fs-license-file /opt/freesurfer/6.0/license.txt {args}\nEOF"""\
-                         .format(bidsdir=bidsdir, outputdir=outputdir, workdir=os.path.join(outputdir,'work_frmiprep','sub-'+sub_id), sub_id=sub_id, outputspace=' '.join(outputspace), mem_mb=mem_mb, args=argstr)
+                         .format(bidsdir=bidsdir, outputdir=outputdir, workdir=os.path.join(outputdir,'work_frmiprep','sub-'+sub_id), sub_id=sub_id, outputspace=' '.join(outputspace), mem_mb=mem_mb, args=argstr, pwd=os.getcwd())
             print('>>> Submitting job:\n' + command)
-            proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-            if proc.returncode != 0:
-                print('Job submission failed with error-code: {}\n'.format(proc.returncode))
+            if not dryrun:
+                proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+                if proc.returncode != 0:
+                    print('Job submission failed with error-code: {}\n'.format(proc.returncode))
 
         else:
             print('>>> Nothing to do for: ' + sub_dir)
 
     print('\n----------------\n' 
           'Done! Now wait for the jobs to finish...\n\n'
-          'You may remove the (large) "[outputdir]/work_fmriprep" subdirectory when the jobs are finished; For more details, see:\n\n'
-          '  fmriprep -h\n')
+          'You may remove the (large) {outputdir}/work_fmriprep subdirectory when the jobs are finished; For more details, see:\n\n'
+          '  fmriprep -h\n'.format(outputdir=outputdir))
 
 
 # Shell usage
@@ -185,12 +186,15 @@ if __name__ == "__main__":
         pass
 
     parser = argparse.ArgumentParser(formatter_class=CustomFormatter, description=textwrap.dedent(__doc__),
-                                     epilog='examples:\n'
+                                     epilog='for more information see:\n'
+                                            '  module help fmriprep\n'
+                                            '  fmriprep -h\n\n'
+                                            'examples:\n'
                                             '  fmriprep_sub.py /project/3017065.01/bids\n'
                                             '  fmriprep_sub.py /project/3017065.01/bids -o /project/3017065.01/fmriprep --participant_label sub-P010 sub-P018\n'
                                             '  fmriprep_sub.py /project/3017065.01/bids -a "--use-aroma --ignore slicetiming"\n'
                                             '  fmriprep_sub.py -f -m 40000 /project/3017065.01/bids -p P018\n\n'
-                                            'Author:\n' 
+                                            'author:\n'
                                             '  Marcel Zwiers\n ')
     parser.add_argument('bidsdir',                  help='The bids-directory with the (new) subject data')
     parser.add_argument('-o','--outputdir',         help='The output-directory where the frmiprep output is stored (None = ./bidsdir/derivatives)')
@@ -199,6 +203,7 @@ if __name__ == "__main__":
     parser.add_argument('-f','--force',             help='If this flag is given subjects will be processed, regardless of existing folders in the bidsfolder. Otherwise existing folders will be skipped', action='store_true')
     parser.add_argument('-m','--mem_mb',            help='Maximum required amount of memory', default=18000)
     parser.add_argument('-a','--args',              help='Additional arguments that are passed to fmriprep (NB: Use quotes to prevent parsing of spaces)', type=str, default='')
+    parser.add_argument('-d','--dryrun',            help='Add this flag to just print the fmriprep qsub commands without actually submitting them (useful for debugging)', action='store_true')
     args = parser.parse_args()
 
-    main(bidsdir=args.bidsdir, outputdir=args.outputdir, outputspace=args.outputspace, subject_label=args.participant_label, force=args.force, mem_mb=args.mem_mb, argstr=args.args)
+    main(bidsdir=args.bidsdir, outputdir=args.outputdir, outputspace=args.outputspace, subject_label=args.participant_label, force=args.force, mem_mb=args.mem_mb, argstr=args.args, dryrun=args.dryrun)
