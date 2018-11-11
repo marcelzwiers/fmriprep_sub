@@ -166,10 +166,10 @@ def main(bidsdir, outputdir, outputspace, subject_label=(), force=False, mem_mb=
                 print('>>> Skipping already running / scheduled job: fmriprep_' + sub_id)
             else:
                 print('>>> Submitting job:\n' + command)
-            if not dryrun:
-                proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-                if proc.returncode != 0:
-                    print('Job submission failed with error-code: {}\n'.format(proc.returncode))
+                if not dryrun:
+                    proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+                    if proc.returncode != 0:
+                        print('Job submission failed with error-code: {}\n'.format(proc.returncode))
 
         else:
             print('>>> Nothing to do for: ' + sub_dir)
