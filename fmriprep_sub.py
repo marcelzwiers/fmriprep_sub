@@ -156,12 +156,11 @@ def main(bidsdir, outputdir, outputspace, subject_label=(), force=False, mem_mb=
             #                         Force stopping on first crash, even if a work directory was specified.
             #   --notrack             Opt-out of sending tracking information of this run to the FMRIPREP developers. This information helps to improve FMRIPREP and provides an indicator of real world usage crucial for obtaining funding.
 
-            command = """qsub -l walltime=48:00:00,mem={mem_mb}mb -N fmriprep_{sub_id} <<EOF
-                         module rm fsl; module add fmriprep; source activate /opt/fmriprep; export FSLOUTPUTTYPE=NIFTI_GZ; cd {pwd}
+            command = """qsub -l walltime=70:00:00,mem={mem_mb}mb -N fmriprep_{sub_id} <<EOF
+                         module rm fsl; module add fmriprep; source activate /opt/fmriprep; cd {pwd}
                          fmriprep {bidsdir} {outputdir} participant -w {workdir} --participant-label {sub_id} --output-space {outputspace} --mem_mb {mem_mb} --omp-nthreads 1 --nthreads 1 --fs-license-file /opt/freesurfer/6.0/license.txt {args}\nEOF"""\
                          .format(bidsdir=bidsdir, outputdir=outputdir, workdir=os.path.join(outputdir,'work_frmiprep','sub-'+sub_id), sub_id=sub_id, outputspace=' '.join(outputspace), mem_mb=mem_mb, args=argstr, pwd=os.getcwd())
-            running = subprocess.run('qstat -f $(qselect -s RQH) | grep Job_Name | grep fmriprep_',
-                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+            running = subprocess.run('if [ ! -z "$(qselect -s RQH)" ]; then qstat -f $(qselect -s RQH) | grep Job_Name | grep fmriprep_; fi', stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             if skip and 'fmriprep_' + sub_id in running.stdout.decode():
                 print('>>> Skipping already running / scheduled job: fmriprep_' + sub_id)
             else:
@@ -169,7 +168,7 @@ def main(bidsdir, outputdir, outputspace, subject_label=(), force=False, mem_mb=
                 if not dryrun:
                     proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
                     if proc.returncode != 0:
-                        print('Job submission failed with error-code: {}\n'.format(proc.returncode))
+                        print('WARNING: Job submission failed with error-code {}\n'.format(proc.returncode))
 
         else:
             print('>>> Nothing to do for: ' + sub_dir)
@@ -197,7 +196,7 @@ if __name__ == "__main__":
                                             'examples:\n'
                                             '  fmriprep_sub.py /project/3017065.01/bids\n'
                                             '  fmriprep_sub.py /project/3017065.01/bids -o /project/3017065.01/fmriprep --participant_label sub-P010 sub-P018\n'
-                                            '  fmriprep_sub.py /project/3017065.01/bids -a " --longitudinal"\n'
+                                            '  fmriprep_sub.py /project/3017065.01/bids -a " --fs-no-reconall"\n'
                                             '  fmriprep_sub.py /project/3017065.01/bids -a " --use-aroma --ignore slicetiming"\n'
                                             '  fmriprep_sub.py -f -m 40000 /project/3017065.01/bids -p P018\n\n'
                                             'author:\n'
@@ -208,7 +207,7 @@ if __name__ == "__main__":
     parser.add_argument('-c','--outputspace',       help='Coordinate system where the functional series are resample into (for more info: fmriprep -h)', default=['template'], choices=['T1w','template','fsnative','fsaverage','fsaverage6','fsaverage5'], nargs='+')
     parser.add_argument('-f','--force',             help='If this flag is given subjects will be processed, regardless of existing folders in the bidsfolder. Otherwise existing folders will be skipped', action='store_true')
     parser.add_argument('-i','--ignore',            help='If this flag is given then already running or scheduled jobs with the same name are ignored, otherwise job submission is skipped', action='store_false')
-    parser.add_argument('-m','--mem_mb',            help='Maximum required amount of memory', default=18000)
+    parser.add_argument('-m','--mem_mb',            help='Maximum required amount of memory', default=18000, type=int)
     parser.add_argument('-a','--args',              help='Additional arguments that are passed to fmriprep (NB: Use quotes to prevent parsing of spaces)', type=str, default='')
     parser.add_argument('-d','--dryrun',            help='Add this flag to just print the fmriprep qsub commands without actually submitting them (useful for debugging)', action='store_true')
     args = parser.parse_args()
