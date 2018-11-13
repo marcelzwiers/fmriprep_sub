@@ -25,6 +25,10 @@ def main(bidsdir, outputdir, outputspace, subject_label=(), force=False, mem_mb=
     # Go through the bids directory and submit a job for every (new) subject
     for sub_dir in sub_dirs:
 
+        if not os.path.isdir(sub_dir):
+            print('>>> Directory does not exist: ' + sub_dir)
+            continue
+
         sub_id = sub_dir.rsplit('sub-')[1].split(os.sep)[0]
 
         # A subject is considered already done if there is a html-report. TODO: catch errors
