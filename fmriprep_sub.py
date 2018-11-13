@@ -16,11 +16,14 @@ def main(bidsdir, outputdir, outputspace, subject_label=(), force=False, mem_mb=
     if not outputdir:
         outputdir = os.path.join(bidsdir,'derivatives')
 
-    # Go through the bids directory and submit a job for every (new) subject
-    for sub_dir in glob.glob(os.path.join(bidsdir, 'sub-*')):
+    # Map the bids directory. TODO: make robust against datasets without session-subfolders
+    if not subject_label:
+        sub_dirs = glob.glob(os.path.join(bidsdir, 'sub-*'))
+    else:
+        sub_dirs = [os.path.join(bidsdir, 'sub-' + label.replace('sub-','')) for label in subject_label]
 
-        if subject_label and sub_dir not in subject_label:
-            continue
+    # Go through the bids directory and submit a job for every (new) subject
+    for sub_dir in sub_dirs:
 
         sub_id = sub_dir.rsplit('sub-')[1].split(os.sep)[0]
 
