@@ -19,7 +19,7 @@ def main(bidsdir, outputdir, outputspace, subject_label=(), force=False, mem_mb=
     # Go through the bids directory and submit a job for every (new) subject
     for sub_dir in glob.glob(os.path.join(bidsdir, 'sub-*')):
 
-        if subject_label and subject_label not in sub_dir:
+        if subject_label and sub_dir not in subject_label:
             continue
 
         sub_id = sub_dir.rsplit('sub-')[1].split(os.sep)[0]
