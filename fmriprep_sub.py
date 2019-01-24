@@ -6,6 +6,7 @@ participants and then runs participant-level fmriprep jobs on the compute cluste
 """
 
 import os
+import shutil
 import glob
 import subprocess
 
@@ -16,13 +17,13 @@ def main(bidsdir, outputdir, outputspace, subject_label=(), force=False, mem_mb=
     if not outputdir:
         outputdir = os.path.join(bidsdir,'derivatives')
 
-    # Map the bids directory. TODO: make robust against datasets without session-subfolders
+    # Map the bids sub-directories
     if not subject_label:
         sub_dirs = glob.glob(os.path.join(bidsdir, 'sub-*'))
     else:
         sub_dirs = [os.path.join(bidsdir, 'sub-' + label.replace('sub-','')) for label in subject_label]
 
-    # Go through the bids directory and submit a job for every (new) subject
+    # Loop over the bids sub-directories and submit a job for every (new) subject
     for sub_dir in sub_dirs:
 
         if not os.path.isdir(sub_dir):
@@ -32,7 +33,9 @@ def main(bidsdir, outputdir, outputspace, subject_label=(), force=False, mem_mb=
         sub_id = sub_dir.rsplit('sub-')[1].split(os.sep)[0]
 
         # A subject is considered already done if there is a html-report. TODO: catch errors
-        if force or not os.path.isfile(os.path.join(outputdir, 'fmriprep', 'sub-' + sub_id + '.html')):
+        report  = os.path.join(outputdir, 'fmriprep', 'sub-' + sub_id + '.html')
+        workdir = os.path.join(outputdir, 'work_fmriprep', 'sub-' + sub_id)
+        if force or not os.path.isfile(report):
 
             # Submit the mriqc jobs to the cluster
             # usage: fmriprep [-h] [--version]
@@ -163,10 +166,24 @@ def main(bidsdir, outputdir, outputspace, subject_label=(), force=False, mem_mb=
             #                         Force stopping on first crash, even if a work directory was specified.
             #   --notrack             Opt-out of sending tracking information of this run to the FMRIPREP developers. This information helps to improve FMRIPREP and provides an indicator of real world usage crucial for obtaining funding.
 
+            # Start with a clean directory if we are forcing to reprocess the data (as presumably something went wrong or has changed)
+            if force and os.path.isdir(workdir):
+                shutil.rmtree(workdir, ignore_errors=True)          # NB: This can also be done in parallel on the cluster if it takes too much time
+            if os.path.isfile(report):
+                os.remove(report)
+
+            # Submit the job to the compute cluster
             command = """qsub -l walltime=70:00:00,mem={mem_mb}mb -N fmriprep_{sub_id} <<EOF
                          module rm fsl; module add fmriprep; source activate /opt/fmriprep; cd {pwd}
                          fmriprep {bidsdir} {outputdir} participant -w {workdir} --participant-label {sub_id} --output-space {outputspace} --mem_mb {mem_mb} --omp-nthreads 1 --nthreads 1 --fs-license-file /opt/freesurfer/6.0/license.txt {args}\nEOF"""\
-                         .format(bidsdir=bidsdir, outputdir=outputdir, workdir=os.path.join(outputdir,'work_frmiprep','sub-'+sub_id), sub_id=sub_id, outputspace=' '.join(outputspace), mem_mb=mem_mb, args=argstr, pwd=os.getcwd())
+                         .format(pwd         = os.getcwd(),
+                                 bidsdir     = bidsdir,
+                                 outputdir   = outputdir,
+                                 workdir     = workdir,
+                                 sub_id      = sub_id,
+                                 outputspace = ' '.join(outputspace),
+                                 mem_mb      = mem_mb,
+                                 args        = argstr)
             running = subprocess.run('if [ ! -z "$(qselect -s RQH)" ]; then qstat -f $(qselect -s RQH) | grep Job_Name | grep fmriprep_; fi', stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             if skip and 'fmriprep_' + sub_id in running.stdout.decode():
                 print('>>> Skipping already running / scheduled job: fmriprep_' + sub_id)
@@ -211,7 +228,7 @@ if __name__ == "__main__":
     parser.add_argument('bidsdir',                  help='The bids-directory with the (new) subject data')
     parser.add_argument('-o','--outputdir',         help='The output-directory where the frmiprep output is stored (None = ./bidsdir/derivatives)')
     parser.add_argument('-p','--participant_label', help='Space seperated list of sub-# identifiers to be processed (the sub- prefix can be removed). Otherwise all sub-folders in the bidsfolder will be processed', nargs='+')
-    parser.add_argument('-c','--outputspace',       help='Coordinate system where the functional series are resample into (for more info: fmriprep -h)', default=['template'], choices=['T1w','template','fsnative','fsaverage','fsaverage6','fsaverage5'], nargs='+')
+    parser.add_argument('-s','--outputspace',       help='Spatial coordinate system where the functional series are resample into (for more info: fmriprep -h)', default=['template'], choices=['T1w','template','fsnative','fsaverage','fsaverage6','fsaverage5'], nargs='+')
     parser.add_argument('-f','--force',             help='If this flag is given subjects will be processed, regardless of existing folders in the bidsfolder. Otherwise existing folders will be skipped', action='store_true')
     parser.add_argument('-i','--ignore',            help='If this flag is given then already running or scheduled jobs with the same name are ignored, otherwise job submission is skipped', action='store_false')
     parser.add_argument('-m','--mem_mb',            help='Maximum required amount of memory', default=18000, type=int)
