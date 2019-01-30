@@ -174,8 +174,8 @@ def main(bidsdir, outputdir, outputspace, subject_label=(), force=False, mem_mb=
 
             # Submit the job to the compute cluster
             command = """qsub -l walltime=70:00:00,mem={mem_mb}mb -N fmriprep_{sub_id} <<EOF
-                         module rm fsl; module add fmriprep; source activate /opt/fmriprep; cd {pwd}
-                         fmriprep {bidsdir} {outputdir} participant -w {workdir} --participant-label {sub_id} --output-space {outputspace} --mem_mb {mem_mb} --omp-nthreads 1 --nthreads 1 --fs-license-file /opt/freesurfer/6.0/license.txt {args}\nEOF"""\
+                         module add fmriprep; cd {pwd}
+                         fmriprep {bidsdir} {outputdir} participant -w {workdir} --participant-label {sub_id} --output-space {outputspace} --mem_mb {mem_mb} --omp-nthreads 1 --nthreads 1 --fs-license-file /opt/fmriprep/license.txt {args}\nEOF"""\
                          .format(pwd         = os.getcwd(),
                                  bidsdir     = bidsdir,
                                  outputdir   = outputdir,
