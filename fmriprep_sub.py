@@ -9,9 +9,9 @@ import os
 import shutil
 import glob
 import subprocess
+import uuid
 
-
-def main(bidsdir, outputdir, outputspace, subject_label=(), force=False, mem_mb=18000, argstr='', dryrun=False, skip=True):
+def main(bidsdir, outputdir, workdir_, outputspace, subject_label=(), force=False, mem_mb=18000, argstr='', dryrun=False, skip=True):
 
     # Default
     if not outputdir:
@@ -34,7 +34,12 @@ def main(bidsdir, outputdir, outputspace, subject_label=(), force=False, mem_mb=
 
         # A subject is considered already done if there is a html-report. TODO: catch errors
         report  = os.path.join(outputdir, 'fmriprep', 'sub-' + sub_id + '.html')
-        workdir = os.path.join(outputdir, 'work_fmriprep', 'sub-' + sub_id)
+        if not workdir_:
+            workdir = os.path.join(os.sep, 'tmp', os.environ['USER'], 'work_fmriprep', f'sub-{sub_id}_{uuid.uuid4()}')
+            cleanup = 'rm -rf ' + workdir
+        else:
+            workdir = workdir_
+            cleanup = ''
         if force or not os.path.isfile(report):
 
             # Submit the mriqc jobs to the cluster
@@ -175,15 +180,19 @@ def main(bidsdir, outputdir, outputspace, subject_label=(), force=False, mem_mb=
             # Submit the job to the compute cluster
             command = """qsub -l walltime=70:00:00,mem={mem_mb}mb -N fmriprep_{sub_id} <<EOF
                          module add fmriprep; cd {pwd}
-                         fmriprep {bidsdir} {outputdir} participant -w {workdir} --participant-label {sub_id} --output-space {outputspace} --mem_mb {mem_mb} --omp-nthreads 1 --nthreads 1 --fs-license-file /opt/fmriprep/license.txt {args}\nEOF"""\
+                         {fmriprep} {bidsdir} {outputdir} participant -w {workdir} --participant-label {sub_id} --output-space {outputspace} --fs-license-file {licensefile} --mem_mb {mem_mb} --omp-nthreads 1 --nthreads 1 {args}
+                         {cleanup}\nEOF"""\
                          .format(pwd         = os.getcwd(),
+                                 fmriprep    = f'unset PYTHONPATH; singularity run /opt/fmriprep/{os.getenv("FMRIPREP_VERSION")}/fmriprep-{os.getenv("FMRIPREP_VERSION")}.simg',
                                  bidsdir     = bidsdir,
                                  outputdir   = outputdir,
                                  workdir     = workdir,
                                  sub_id      = sub_id,
                                  outputspace = ' '.join(outputspace),
+                                 licensefile = os.getenv('FS_LICENSE'),
                                  mem_mb      = mem_mb,
-                                 args        = argstr)
+                                 args        = argstr,
+                                 cleanup     = cleanup)
             running = subprocess.run('if [ ! -z "$(qselect -s RQH)" ]; then qstat -f $(qselect -s RQH) | grep Job_Name | grep fmriprep_; fi', stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             if skip and 'fmriprep_' + sub_id in running.stdout.decode():
                 print('>>> Skipping already running / scheduled job: fmriprep_' + sub_id)
@@ -195,11 +204,11 @@ def main(bidsdir, outputdir, outputspace, subject_label=(), force=False, mem_mb=
                         print('WARNING: Job submission failed with error-code {}\n'.format(proc.returncode))
 
         else:
-            print('>>> Nothing to do for: ' + sub_dir)
+            print(f'>>> Nothing to do for: {sub_dir} (--> {report})')
 
     print('\n----------------\n' 
-          'Done! Now wait for the jobs to finish...\n\n'
-          'You may remove the (large) {outputdir}/work_fmriprep subdirectory when the jobs are finished; For more details, see:\n\n'
+          'Done! Now wait for the jobs to finish... (e.g. check that with this command: qstat $(qselect -s RQ) | grep fmriprep)\n\n'
+          'For more details, see:\n\n'
           '  fmriprep -h\n'.format(outputdir=outputdir))
 
 
@@ -226,7 +235,8 @@ if __name__ == "__main__":
                                             'author:\n'
                                             '  Marcel Zwiers\n ')
     parser.add_argument('bidsdir',                  help='The bids-directory with the (new) subject data')
-    parser.add_argument('-o','--outputdir',         help='The output-directory where the frmiprep output is stored (None = ./bidsdir/derivatives)')
+    parser.add_argument('-o','--outputdir',         help='The output-directory where the frmiprep output is stored (None -> ./bidsdir/derivatives)')
+    parser.add_argument('-w','--workdir',           help='The working-directory where intermediate files are stored (None -> in temporary directory')
     parser.add_argument('-p','--participant_label', help='Space seperated list of sub-# identifiers to be processed (the sub- prefix can be removed). Otherwise all sub-folders in the bidsfolder will be processed', nargs='+')
     parser.add_argument('-s','--outputspace',       help='Spatial coordinate system where the functional series are resample into (for more info: fmriprep -h)', default=['template'], choices=['T1w','template','fsnative','fsaverage','fsaverage6','fsaverage5'], nargs='+')
     parser.add_argument('-f','--force',             help='If this flag is given subjects will be processed, regardless of existing folders in the bidsfolder. Otherwise existing folders will be skipped', action='store_true')
@@ -236,4 +246,4 @@ if __name__ == "__main__":
     parser.add_argument('-d','--dryrun',            help='Add this flag to just print the fmriprep qsub commands without actually submitting them (useful for debugging)', action='store_true')
     args = parser.parse_args()
 
-    main(bidsdir=args.bidsdir, outputdir=args.outputdir, outputspace=args.outputspace, subject_label=args.participant_label, force=args.force, mem_mb=args.mem_mb, argstr=args.args, dryrun=args.dryrun, skip=args.ignore)
+    main(bidsdir=args.bidsdir, outputdir=args.outputdir, workdir_=args.workdir, outputspace=args.outputspace, subject_label=args.participant_label, force=args.force, mem_mb=args.mem_mb, argstr=args.args, dryrun=args.dryrun, skip=args.ignore)
