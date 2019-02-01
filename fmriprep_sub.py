@@ -11,6 +11,7 @@ import glob
 import subprocess
 import uuid
 
+
 def main(bidsdir, outputdir, workdir_, outputspace, subject_label=(), force=False, mem_mb=18000, argstr='', dryrun=False, skip=True):
 
     # Default
@@ -24,7 +25,7 @@ def main(bidsdir, outputdir, workdir_, outputspace, subject_label=(), force=Fals
         sub_dirs = [os.path.join(bidsdir, 'sub-' + label.replace('sub-','')) for label in subject_label]
 
     # Loop over the bids sub-directories and submit a job for every (new) subject
-    for sub_dir in sub_dirs:
+    for n, sub_dir in enumerate(sub_dirs):
 
         if not os.path.isdir(sub_dir):
             print('>>> Directory does not exist: ' + sub_dir)
@@ -33,12 +34,12 @@ def main(bidsdir, outputdir, workdir_, outputspace, subject_label=(), force=Fals
         sub_id = sub_dir.rsplit('sub-')[1].split(os.sep)[0]
 
         # A subject is considered already done if there is a html-report. TODO: catch errors
-        report  = os.path.join(outputdir, 'fmriprep', 'sub-' + sub_id + '.html')
+        report = os.path.join(outputdir, 'fmriprep', 'sub-' + sub_id + '.html')
         if not workdir_:
             workdir = os.path.join(os.sep, 'tmp', os.environ['USER'], 'work_fmriprep', f'sub-{sub_id}_{uuid.uuid4()}')
             cleanup = 'rm -rf ' + workdir
         else:
-            workdir = workdir_
+            workdir = os.path.join(workdir_, 'sub-' + sub_id)
             cleanup = ''
         if force or not os.path.isfile(report):
 
@@ -197,7 +198,7 @@ def main(bidsdir, outputdir, workdir_, outputspace, subject_label=(), force=Fals
             if skip and 'fmriprep_' + sub_id in running.stdout.decode():
                 print('>>> Skipping already running / scheduled job: fmriprep_' + sub_id)
             else:
-                print('>>> Submitting job:\n' + command)
+                print(f'>>> Submitting job ({n}/{len(sub_dirs)}):\n{command}')
                 if not dryrun:
                     proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
                     if proc.returncode != 0:
@@ -235,8 +236,8 @@ if __name__ == "__main__":
                                             'author:\n'
                                             '  Marcel Zwiers\n ')
     parser.add_argument('bidsdir',                  help='The bids-directory with the (new) subject data')
-    parser.add_argument('-o','--outputdir',         help='The output-directory where the frmiprep output is stored (None -> ./bidsdir/derivatives)')
-    parser.add_argument('-w','--workdir',           help='The working-directory where intermediate files are stored (None -> in temporary directory')
+    parser.add_argument('-o','--outputdir',         help='The output-directory where the frmiprep output is stored (None -> bidsdir/derivatives)')
+    parser.add_argument('-w','--workdir',           help='The working-directory where intermediate files are stored (None -> temporary directory')
     parser.add_argument('-p','--participant_label', help='Space seperated list of sub-# identifiers to be processed (the sub- prefix can be removed). Otherwise all sub-folders in the bidsfolder will be processed', nargs='+')
     parser.add_argument('-s','--outputspace',       help='Spatial coordinate system where the functional series are resample into (for more info: fmriprep -h)', default=['template'], choices=['T1w','template','fsnative','fsaverage','fsaverage6','fsaverage5'], nargs='+')
     parser.add_argument('-f','--force',             help='If this flag is given subjects will be processed, regardless of existing folders in the bidsfolder. Otherwise existing folders will be skipped', action='store_true')
