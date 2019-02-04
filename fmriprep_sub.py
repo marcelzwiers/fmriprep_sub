@@ -31,17 +31,26 @@ def main(bidsdir, outputdir, workdir_, outputspace, subject_label=(), force=Fals
             print('>>> Directory does not exist: ' + sub_dir)
             continue
 
-        sub_id = sub_dir.rsplit('sub-')[1].split(os.sep)[0]
+        # Identify what data sessions we have
+        sub_id    = sub_dir.rsplit('sub-')[1].split(os.sep)[0]
+        ses_dirs  = [os.path.basename(ses_dir) for ses_dir in glob.glob(os.path.join(sub_dir, 'ses-*'))]
+        ses_dirs_ = [os.path.basename(ses_dir) for ses_dir in glob.glob(os.path.join(outputdir, 'fmriprep', 'sub-' + sub_id, 'ses-*'))]
 
-        # A subject is considered already done if there is a html-report. TODO: catch errors
-        report = os.path.join(outputdir, 'fmriprep', 'sub-' + sub_id + '.html')
+        # Define a (clean) subject specific work directory and clean-up when done
         if not workdir_:
             workdir = os.path.join(os.sep, 'tmp', os.environ['USER'], 'work_fmriprep', f'sub-{sub_id}_{uuid.uuid4()}')
             cleanup = 'rm -rf ' + workdir
         else:
             workdir = os.path.join(workdir_, 'sub-' + sub_id)
             cleanup = ''
-        if force or not os.path.isfile(report):
+
+        # A subject is considered already done if there is a html-report and all sessions have been processed. TODO: check if all expected reports are there
+        report = os.path.join(outputdir, 'fmriprep', 'sub-' + sub_id + '.html')
+        if len(ses_dirs) == len(ses_dirs_):
+            sessions = [ses_dir in ses_dirs_ for ses_dir in ses_dirs]
+        else:
+            sessions = [False]
+        if force or not os.path.isfile(report) or not all(sessions):
 
             # Submit the mriqc jobs to the cluster
             # usage: fmriprep [-h] [--version]
@@ -196,7 +205,7 @@ def main(bidsdir, outputdir, workdir_, outputspace, subject_label=(), force=Fals
                                  cleanup     = cleanup)
             running = subprocess.run('if [ ! -z "$(qselect -s RQH)" ]; then qstat -f $(qselect -s RQH) | grep Job_Name | grep fmriprep_; fi', stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             if skip and 'fmriprep_' + sub_id in running.stdout.decode():
-                print('>>> Skipping already running / scheduled job: fmriprep_' + sub_id)
+                print(f'>>> Skipping already running / scheduled job ({n}/{len(sub_dirs)}): fmriprep_{sub_id}')
             else:
                 print(f'>>> Submitting job ({n}/{len(sub_dirs)}):\n{command}')
                 if not dryrun:
@@ -205,10 +214,10 @@ def main(bidsdir, outputdir, workdir_, outputspace, subject_label=(), force=Fals
                         print('WARNING: Job submission failed with error-code {}\n'.format(proc.returncode))
 
         else:
-            print(f'>>> Nothing to do for: {sub_dir} (--> {report})')
+            print(f'>>> Nothing to do for job ({n}/{len(sub_dirs)}): {sub_dir} (--> {report})')
 
     print('\n----------------\n' 
-          'Done! Now wait for the jobs to finish... (e.g. check that with this command: qstat $(qselect -s RQ) | grep fmriprep)\n\n'
+          'Done! Now wait for the jobs to finish... (e.g. check that with this command: qstat -a $(qselect -s RQ) | grep fmriprep)\n\n'
           'For more details, see:\n\n'
           '  fmriprep -h\n'.format(outputdir=outputdir))
 
