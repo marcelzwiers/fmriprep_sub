@@ -193,7 +193,7 @@ def main(bidsdir, outputdir, workdir_, outputspace, subject_label=(), force=Fals
                          {fmriprep} {bidsdir} {outputdir} participant -w {workdir} --participant-label {sub_id} --output-space {outputspace} --fs-license-file {licensefile} --mem_mb {mem_mb} --omp-nthreads 1 --nthreads 1 {args}
                          {cleanup}\nEOF"""\
                          .format(pwd         = os.getcwd(),
-                                 fmriprep    = f'unset PYTHONPATH; singularity run /opt/fmriprep/{os.getenv("FMRIPREP_VERSION")}/fmriprep-{os.getenv("FMRIPREP_VERSION")}.simg',
+                                 fmriprep    = f'unset PYTHONPATH; singularity run {os.getenv("DCCN_OPT_DIR")}/fmriprep/{os.getenv("FMRIPREP_VERSION")}/fmriprep-{os.getenv("FMRIPREP_VERSION")}.simg',
                                  bidsdir     = bidsdir,
                                  outputdir   = outputdir,
                                  workdir     = workdir,
