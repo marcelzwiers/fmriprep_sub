@@ -25,16 +25,16 @@ def main(bidsdir, outputdir, workdir_, outputspace, subject_label=(), force=Fals
         sub_dirs = [os.path.join(bidsdir, 'sub-' + label.replace('sub-','')) for label in subject_label]
 
     # Loop over the bids sub-directories and submit a job for every (new) subject
-    for n, sub_dir in enumerate(sub_dirs):
+    for n, sub_dir in enumerate(sub_dirs,1):
 
         if not os.path.isdir(sub_dir):
             print('>>> Directory does not exist: ' + sub_dir)
             continue
 
         # Identify what data sessions we have
-        sub_id    = sub_dir.rsplit('sub-')[1].split(os.sep)[0]
-        ses_dirs  = [os.path.basename(ses_dir) for ses_dir in glob.glob(os.path.join(sub_dir, 'ses-*'))]
-        ses_dirs_ = [os.path.basename(ses_dir) for ses_dir in glob.glob(os.path.join(outputdir, 'fmriprep', 'sub-' + sub_id, 'ses-*'))]
+        sub_id       = sub_dir.rsplit('sub-')[1].split(os.sep)[0]
+        ses_dirs_in  = [os.path.basename(ses_dir) for ses_dir in glob.glob(os.path.join(sub_dir, 'ses-*'))]
+        ses_dirs_out = [os.path.basename(ses_dir) for ses_dir in glob.glob(os.path.join(outputdir, 'fmriprep', 'sub-' + sub_id, 'ses-*'))]
 
         # Define a (clean) subject specific work directory and clean-up when done
         if not workdir_:
@@ -44,142 +44,13 @@ def main(bidsdir, outputdir, workdir_, outputspace, subject_label=(), force=Fals
             workdir = os.path.join(workdir_, 'sub-' + sub_id)
             cleanup = ''
 
-        # A subject is considered already done if there is a html-report and all sessions have been processed. TODO: check if all expected reports are there
+        # A subject is considered already done if there is a html-report and all sessions have been processed
         report = os.path.join(outputdir, 'fmriprep', 'sub-' + sub_id + '.html')
-        if len(ses_dirs) == len(ses_dirs_):
-            sessions = [ses_dir in ses_dirs_ for ses_dir in ses_dirs]
+        if len(ses_dirs_in) == len(ses_dirs_out):
+            sessions = [ses_dir in ses_dirs_out for ses_dir in ses_dirs_in]
         else:
             sessions = [False]
         if force or not os.path.isfile(report) or not all(sessions):
-
-            # Submit the mriqc jobs to the cluster
-            # usage: fmriprep [-h] [--version]
-            #                 [--participant_label PARTICIPANT_LABEL [PARTICIPANT_LABEL ...]]
-            #                 [-t TASK_ID] [--debug] [--nthreads NTHREADS]
-            #                 [--omp-nthreads OMP_NTHREADS] [--mem_mb MEM_MB] [--low-mem]
-            #                 [--use-plugin USE_PLUGIN] [--anat-only] [--boilerplate]
-            #                 [--ignore-aroma-denoising-errors] [-v]
-            #                 [--ignore {fieldmaps,slicetiming,sbref} [{fieldmaps,slicetiming,sbref} ...]]
-            #                 [--longitudinal] [--t2s-coreg] [--bold2t1w-dof {6,9,12}]
-            #                 [--output-space {T1w,template,fsnative,fsaverage,fsaverage6,fsaverage5} [{T1w,template,fsnative,fsaverage,fsaverage6,fsaverage5} ...]]
-            #                 [--force-bbr] [--force-no-bbr]
-            #                 [--template {MNI152NLin2009cAsym}]
-            #                 [--output-grid-reference OUTPUT_GRID_REFERENCE]
-            #                 [--template-resampling-grid TEMPLATE_RESAMPLING_GRID]
-            #                 [--medial-surface-nan] [--use-aroma]
-            #                 [--aroma-melodic-dimensionality AROMA_MELODIC_DIMENSIONALITY]
-            #                 [--skull-strip-template {OASIS,NKI}]
-            #                 [--skull-strip-fixed-seed] [--fmap-bspline] [--fmap-no-demean]
-            #                 [--use-syn-sdc] [--force-syn] [--fs-license-file PATH]
-            #                 [--no-submm-recon] [--cifti-output | --fs-no-reconall]
-            #                 [-w WORK_DIR] [--resource-monitor] [--reports-only]
-            #                 [--run-uuid RUN_UUID] [--write-graph] [--stop-on-first-crash]
-            #                 [--notrack]
-            #                 bids_dir output_dir {participant}
-            pass # Allow for pycharm code folding
-            #
-            # FMRIPREP: fMRI PREProcessing workflows
-            #
-            # positional arguments:
-            #   bids_dir              the root folder of a BIDS valid dataset (sub-XXXXX folders should be found at the top level in this folder).
-            #   output_dir            the output path for the outcomes of preprocessing and visual reports
-            #   {participant}         processing stage to be run, only "participant" in the case of FMRIPREP (see BIDS-Apps specification).
-            #
-            # optional arguments:
-            #   -h, --help            show this help message and exit
-            #   --version             show program's version number and exit
-            #
-            # Options for filtering BIDS queries:
-            #   --participant_label PARTICIPANT_LABEL [PARTICIPANT_LABEL ...], --participant-label PARTICIPANT_LABEL [PARTICIPANT_LABEL ...]
-            #                         a space delimited list of participant identifiers or a single identifier (the sub- prefix can be removed)
-            #   -t TASK_ID, --task-id TASK_ID
-            #                         select a specific task to be processed
-            #
-            # Options to handle performance:
-            #   --debug               run debug version of workflow
-            #   --nthreads NTHREADS, --n_cpus NTHREADS, -n-cpus NTHREADS
-            #                         maximum number of threads across all processes
-            #   --omp-nthreads OMP_NTHREADS
-            #                         maximum number of threads per-process
-            #   --mem_mb MEM_MB, --mem-mb MEM_MB
-            #                         upper bound memory limit for FMRIPREP processes
-            #   --low-mem             attempt to reduce memory usage (will increase disk usage in working directory)
-            #   --use-plugin USE_PLUGIN
-            #                         nipype plugin configuration file
-            #   --anat-only           run anatomical workflows only
-            #   --boilerplate         generate boilerplate only
-            #   --ignore-aroma-denoising-errors
-            #                         ignores the errors ICA_AROMA returns when there are no components classified as either noise or signal
-            #   -v, --verbose         increases log verbosity for each occurence, debug level is -vvv
-            #
-            # Workflow configuration:
-            #   --ignore {fieldmaps,slicetiming,sbref} [{fieldmaps,slicetiming,sbref} ...]
-            #                         ignore selected aspects of the input dataset to disable corresponding parts of the workflow (a space delimited list)
-            #   --longitudinal        treat dataset as longitudinal - may increase runtime
-            #   --t2s-coreg           If provided with multi-echo BOLD dataset, create T2*-map and perform T2*-driven coregistration. When multi-echo data
-            #                         is provided and this option is not enabled, standard EPI-T1 coregistration is performed using the middle echo.
-            #   --bold2t1w-dof {6,9,12}
-            #                         Degrees of freedom when registering BOLD to T1w images. 6 degrees (rotation and translation) are used by default.
-            #   --output-space {T1w,template,fsnative,fsaverage,fsaverage6,fsaverage5} [{T1w,template,fsnative,fsaverage,fsaverage6,fsaverage5} ...]
-            #                         volume and surface spaces to resample functional series into
-            #                          - T1w: subject anatomical volume
-            #                          - template: normalization target specified by --template
-            #                          - fsnative: individual subject surface
-            #                          - fsaverage*: FreeSurfer average meshes
-            #                         this argument can be single value or a space delimited list,
-            #                         for example: --output-space T1w fsnative
-            #   --force-bbr           Always use boundary-based registration (no goodness-of-fit checks)
-            #   --force-no-bbr        Do not use boundary-based registration (no goodness-of-fit checks)
-            #   --template {MNI152NLin2009cAsym}
-            #                         volume template space (default: MNI152NLin2009cAsym)
-            #   --output-grid-reference OUTPUT_GRID_REFERENCE
-            #                         Deprecated after FMRIPREP 1.0.8. Please use --template-resampling-grid instead.
-            #   --template-resampling-grid TEMPLATE_RESAMPLING_GRID
-            #                         Keyword ("native", "1mm", or "2mm") or path to an existing file. Allows to define a reference grid for the resampling
-            #                         of BOLD images in template space. Keyword "native" will use the original BOLD grid as reference. Keywords "1mm" and "2mm"
-            #                         will use the corresponding isotropic template resolutions. If a path is given, the grid of that image will be used. It
-            #                         determines the field of view and resolution of the output images, but is not used in normalization.
-            #   --medial-surface-nan  Replace medial wall values with NaNs on functional GIFTI files. Only performed for GIFTI files mapped to a freesurfer subject (fsaverage or fsnative).
-            #
-            # Specific options for running ICA_AROMA:
-            #   --use-aroma           add ICA_AROMA to your preprocessing stream
-            #   --aroma-melodic-dimensionality AROMA_MELODIC_DIMENSIONALITY
-            #                         set the dimensionality of MELODIC before runningICA-AROMA
-            #
-            # Specific options for ANTs registrations:
-            #   --skull-strip-template {OASIS,NKI}
-            #                         select ANTs skull-stripping template (default: OASIS))
-            #   --skull-strip-fixed-seed
-            #                         do not use a random seed for skull-stripping - will ensure run-to-run replicability when used with --omp-nthreads 1
-            #
-            # Specific options for handling fieldmaps:
-            #   --fmap-bspline        fit a B-Spline field using least-squares (experimental)
-            #   --fmap-no-demean      do not remove median (within mask) from fieldmap
-            #
-            # Specific options for SyN distortion correction:
-            #   --use-syn-sdc         EXPERIMENTAL: Use fieldmap-free distortion correction
-            #   --force-syn           EXPERIMENTAL/TEMPORARY: Use SyN correction in addition to fieldmap correction, if available
-            #
-            # Specific options for FreeSurfer preprocessing:
-            #   --fs-license-file PATH
-            #                         Path to FreeSurfer license key file. Get it (for free) by registering at https://surfer.nmr.mgh.harvard.edu/registration.html
-            #
-            # Surface preprocessing options:
-            #   --no-submm-recon      disable sub-millimeter (hires) reconstruction
-            #   --cifti-output        output BOLD files as CIFTI dtseries
-            #   --fs-no-reconall, --no-freesurfer
-            #                         disable FreeSurfer surface preprocessing. Note : `--no-freesurfer` is deprecated and will be removed in 1.2. Use `--fs-no-reconall` instead.
-            #
-            # Other options:
-            #   -w WORK_DIR, --work-dir WORK_DIR
-            #                         path where intermediate results should be stored
-            #   --resource-monitor    enable Nipype's resource monitoring to keep track of memory and CPU usage
-            #   --reports-only        only generate reports, don't run workflows. This will only rerun report aggregation, not reportlet generation for specific nodes.
-            #   --run-uuid RUN_UUID   Specify UUID of previous run, to include error logs in report. No effect without --reports-only.
-            #   --write-graph         Write workflow graph.
-            #   --stop-on-first-crash
-            #                         Force stopping on first crash, even if a work directory was specified.
-            #   --notrack             Opt-out of sending tracking information of this run to the FMRIPREP developers. This information helps to improve FMRIPREP and provides an indicator of real world usage crucial for obtaining funding.
 
             # Start with a clean directory if we are forcing to reprocess the data (as presumably something went wrong or has changed)
             if force and os.path.isdir(workdir):
@@ -190,10 +61,10 @@ def main(bidsdir, outputdir, workdir_, outputspace, subject_label=(), force=Fals
             # Submit the job to the compute cluster
             command = """qsub -l walltime=70:00:00,mem={mem_mb}mb -N fmriprep_{sub_id} <<EOF
                          module add fmriprep; cd {pwd}
-                         {fmriprep} {bidsdir} {outputdir} participant -w {workdir} --participant-label {sub_id} --output-space {outputspace} --fs-license-file {licensefile} --mem_mb {mem_mb} --omp-nthreads 1 --nthreads 1 {args}
+                         {fmriprep} {bidsdir} {outputdir} participant -w {workdir} --participant-label {sub_id} --output-space {outputspace} --skip-bids-validation --fs-license-file {licensefile} --mem_mb {mem_mb} --omp-nthreads 1 --nthreads 1 {args}
                          {cleanup}\nEOF"""\
                          .format(pwd         = os.getcwd(),
-                                 fmriprep    = f'unset PYTHONPATH; singularity run {os.getenv("DCCN_OPT_DIR")}/fmriprep/{os.getenv("FMRIPREP_VERSION")}/fmriprep-{os.getenv("FMRIPREP_VERSION")}.simg',
+                                 fmriprep    = f'unset PYTHONPATH; export PYTHONNOUSERSITE=1; singularity run {os.getenv("DCCN_OPT_DIR")}/fmriprep/{os.getenv("FMRIPREP_VERSION")}/fmriprep-{os.getenv("FMRIPREP_VERSION")}.simg',
                                  bidsdir     = bidsdir,
                                  outputdir   = outputdir,
                                  workdir     = workdir,
@@ -217,7 +88,7 @@ def main(bidsdir, outputdir, workdir_, outputspace, subject_label=(), force=Fals
             print(f'>>> Nothing to do for job ({n}/{len(sub_dirs)}): {sub_dir} (--> {report})')
 
     print('\n----------------\n' 
-          'Done! Now wait for the jobs to finish... (e.g. check that with this command: qstat -a $(qselect -s RQ) | grep fmriprep)\n\n'
+          'Done! Now wait for the jobs to finish... Check that e.g. with this command:\n\n  qstat -a $(qselect -s RQ) | grep fmriprep\n\n'
           'For more details, see:\n\n'
           '  fmriprep -h\n'.format(outputdir=outputdir))
 
@@ -238,6 +109,7 @@ if __name__ == "__main__":
                                             '  fmriprep -h\n\n'
                                             'examples:\n'
                                             '  fmriprep_sub.py /project/3017065.01/bids\n'
+                                            '  fmriprep_sub.py /project/3017065.01/bids -w /project/3017065.01/fmriprep_work\n'
                                             '  fmriprep_sub.py /project/3017065.01/bids -o /project/3017065.01/fmriprep --participant_label sub-P010 sub-P018\n'
                                             '  fmriprep_sub.py /project/3017065.01/bids -a " --fs-no-reconall"\n'
                                             '  fmriprep_sub.py /project/3017065.01/bids -a " --use-aroma --ignore slicetiming"\n'
