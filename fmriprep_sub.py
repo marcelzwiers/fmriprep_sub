@@ -53,10 +53,11 @@ def main(bidsdir, outputdir, workdir_, outputspace, subject_label=(), force=Fals
         if force or not os.path.isfile(report) or not all(sessions):
 
             # Start with a clean directory if we are forcing to reprocess the data (as presumably something went wrong or has changed)
-            if force and os.path.isdir(workdir):
-                shutil.rmtree(workdir, ignore_errors=True)          # NB: This can also be done in parallel on the cluster if it takes too much time
-            if os.path.isfile(report):
-                os.remove(report)
+            if not dryrun:
+                if force and os.path.isdir(workdir):
+                    shutil.rmtree(workdir, ignore_errors=True)          # NB: This can also be done in parallel on the cluster if it takes too much time
+                if os.path.isfile(report):
+                    os.remove(report)
 
             # Submit the job to the compute cluster
             command = """qsub -l walltime=70:00:00,mem={mem_mb}mb -N fmriprep_{sub_id} <<EOF
