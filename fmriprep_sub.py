@@ -32,20 +32,20 @@ def main(bidsdir, outputdir, workdir_, subject_label=(), force=False, mem_mb=180
             continue
 
         # Identify what data sessions we have
-        sub_id       = sub_dir.rsplit('sub-')[1].split(os.sep)[0]
+        sub_id       = 'sub-' + sub_dir.rsplit('sub-')[1].split(os.sep)[0]
         ses_dirs_in  = [os.path.basename(ses_dir) for ses_dir in glob.glob(os.path.join(sub_dir, 'ses-*'))]
-        ses_dirs_out = [os.path.basename(ses_dir) for ses_dir in glob.glob(os.path.join(outputdir, 'fmriprep', 'sub-' + sub_id, 'ses-*'))]
+        ses_dirs_out = [os.path.basename(ses_dir) for ses_dir in glob.glob(os.path.join(outputdir, 'fmriprep', sub_id, 'ses-*'))]
 
         # Define a (clean) subject specific work directory and clean-up when done
         if not workdir_:
-            workdir = os.path.join(os.sep, 'tmp', os.environ['USER'], 'work_fmriprep', f'sub-{sub_id}_{uuid.uuid4()}')
+            workdir = os.path.join(os.sep, 'tmp', os.environ['USER'], 'work_fmriprep', f'{sub_id}_{uuid.uuid4()}')
             cleanup = 'rm -rf ' + workdir
         else:
-            workdir = os.path.join(workdir_, 'sub-' + sub_id)
+            workdir = os.path.join(workdir_, sub_id)
             cleanup = ''
 
         # A subject is considered already done if there is a html-report and all sessions have been processed
-        report = os.path.join(outputdir, 'fmriprep', 'sub-' + sub_id + '.html')
+        report = os.path.join(outputdir, 'fmriprep', sub_id + '.html')
         if len(ses_dirs_in) == len(ses_dirs_out):
             sessions = [ses_dir in ses_dirs_out for ses_dir in ses_dirs_in]
         else:
@@ -60,7 +60,7 @@ def main(bidsdir, outputdir, workdir_, subject_label=(), force=False, mem_mb=180
                     os.remove(report)
 
             # Submit the job to the compute cluster
-            command = """qsub -l walltime=70:00:00,mem={mem_mb}mb -N fmriprep_{sub_id} <<EOF
+            command = """qsub -l walltime=70:00:00,mem={mem_mb}mb -N fmriprep_sub-{sub_id} <<EOF
                          module add fmriprep; cd {pwd}
                          {fmriprep} {bidsdir} {outputdir} participant -w {workdir} --participant-label {sub_id} --skip-bids-validation --fs-license-file {licensefile} --mem_mb {mem_mb} --omp-nthreads 1 --nthreads 1 {args}
                          {cleanup}\nEOF"""\
@@ -69,13 +69,13 @@ def main(bidsdir, outputdir, workdir_, subject_label=(), force=False, mem_mb=180
                                  bidsdir     = bidsdir,
                                  outputdir   = outputdir,
                                  workdir     = workdir,
-                                 sub_id      = sub_id,
+                                 sub_id      = sub_id[4:],
                                  licensefile = os.getenv('FS_LICENSE'),
                                  mem_mb      = mem_mb,
                                  args        = argstr,
                                  cleanup     = cleanup)
             running = subprocess.run('if [ ! -z "$(qselect -s RQH)" ]; then qstat -f $(qselect -s RQH) | grep Job_Name | grep fmriprep_; fi', stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-            if skip and 'fmriprep_' + sub_id in running.stdout.decode():
+            if skip and f'fmriprep_{sub_id}' in running.stdout.decode():
                 print(f'>>> Skipping already running / scheduled job ({n}/{len(sub_dirs)}): fmriprep_{sub_id}')
             else:
                 print(f'>>> Submitting job ({n}/{len(sub_dirs)}):\n{command}')
@@ -108,12 +108,12 @@ if __name__ == "__main__":
                                             '  module help fmriprep\n'
                                             '  fmriprep -h\n\n'
                                             'examples:\n'
-                                            '  fmriprep_sub.py /project/3017065.01/bids -a " --output-spaces MNI152Lin"\n'
-                                            '  fmriprep_sub.py /project/3017065.01/bids -a " --outputspace template" (use for v1.2, deprecated in v1.4)\n'
-                                            '  fmriprep_sub.py /project/3017065.01/bids -w /project/3017065.01/fmriprep_work -a " --output-spaces MNI152Lin"\n'
-                                            '  fmriprep_sub.py /project/3017065.01/bids -o /project/3017065.01/fmriprep --participant_label sub-P010 sub-P018 -a " --output-spaces MNI152Lin"\n'
-                                            '  fmriprep_sub.py /project/3017065.01/bids -a " --fs-no-reconall --output-spaces MNI152Lin"\n'
-                                            '  fmriprep_sub.py /project/3017065.01/bids -a " --use-aroma --ignore slicetiming"\n'
+                                            '  fmriprep_sub.py /project/3017065.01/bids\n'
+                                            '  fmriprep_sub.py /project/3017065.01/bids -a " --output-space template" (use for v1.2, deprecated in v1.4)\n'
+                                            '  fmriprep_sub.py /project/3017065.01/bids -w /project/3017065.01/fmriprep_work\n'
+                                            '  fmriprep_sub.py /project/3017065.01/bids -o /project/3017065.01/fmriprep --participant_label sub-P010 sub-P018\n'
+                                            '  fmriprep_sub.py /project/3017065.01/bids -a " --fs-no-reconall"\n'
+                                            '  fmriprep_sub.py /project/3017065.01/bids -a " --use-aroma --ignore slicetiming --output-spaces MNI152NLin6Asym"\n'
                                             '  fmriprep_sub.py -f -m 40000 /project/3017065.01/bids -p P018\n\n'
                                             'author:\n'
                                             '  Marcel Zwiers\n ')
