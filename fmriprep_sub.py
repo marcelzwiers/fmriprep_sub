@@ -47,7 +47,7 @@ def main(bidsdir, outputdir, workdir_, subject_label=(), force=False, mem_mb=180
         # A subject is considered already done if there is a html-report and all sessions have been processed
         report = os.path.join(outputdir, 'fmriprep', sub_id + '.html')
         if len(ses_dirs_in) == len(ses_dirs_out):
-            sessions = [ses_dir in ses_dirs_out for ses_dir in ses_dirs_in]
+            sessions = [ses_dir_in in ses_dirs_out for ses_dir_in in ses_dirs_in]
         else:
             sessions = [False]
         if force or not os.path.isfile(report) or not all(sessions):
@@ -88,7 +88,7 @@ def main(bidsdir, outputdir, workdir_, subject_label=(), force=False, mem_mb=180
             print(f'>>> Nothing to do for job ({n}/{len(sub_dirs)}): {sub_dir} (--> {report})')
 
     print('\n----------------\n' 
-          'Done! Now wait for the jobs to finish... Check that e.g. with this command:\n\n  qstat -a $(qselect -s RQ) | grep fmriprep\n\n'
+          'Done! Now wait for the jobs to finish... Check that e.g. with this command:\n\n  qstat -a $(qselect -s RQ) | grep fmriprep_sub\n\n'
           'For more details, see:\n\n'
           '  fmriprep -h\n'.format(outputdir=outputdir))
 
