@@ -71,7 +71,7 @@ def main(bidsdir, outputdir, workdir, subject_label=(), force=False, mem_mb=1800
                                  mem_mb      = mem_mb,
                                  file_gb     = file_gb,
                                  args        = argstr,
-                                 epilogue    = f'{os.getenv("DCCN_OPT_DIR")}/fmriprep/epilogue.sh')
+                                 epilogue    = f'{os.getenv("DCCN_OPT_DIR")}/fmriprep/dccn/epilogue.sh')
             running = subprocess.run('if [ ! -z "$(qselect -s RQH)" ]; then qstat -f $(qselect -s RQH) | grep Job_Name | grep fmriprep_; fi', stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             if skip and f'fmriprep_{sub_id}' in running.stdout.decode():
                 print(f'>>> Skipping already running / scheduled job ({n}/{len(sub_dirs)}): fmriprep_{sub_id}')
