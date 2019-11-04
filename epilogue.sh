@@ -5,9 +5,9 @@ workdir=/data/$2/$1
 
 if [ -n "$1" ] && [ -d $workdir ]; then
     echo ----------------------------------------
-    echo Begin PBS Epilogue $(date '+%d/%m/%Y %H:%M:%S')
-    echo cleaning up workdir $workdir
+    echo Begin $4 epilogue $(date '+%d/%m/%Y %H:%M:%S')
+    echo Cleaning up workdir: $workdir
     rm -rf $workdir
-    echo End PBS Epilogue $(date '+%d/%m/%Y %H:%M:%S')
+    echo End $4 epilogue $(date '+%d/%m/%Y %H:%M:%S')
     echo ----------------------------------------
 fi
