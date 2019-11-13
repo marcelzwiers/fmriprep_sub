@@ -7,61 +7,62 @@ participants and then runs participant-level fmriprep jobs on the compute cluste
 
 import os
 import shutil
-import glob
 import subprocess
+from pathlib import Path
 
-
-def main(bidsdir, outputdir, workdir, subject_label=(), force=False, mem_mb=18000, file_gb=50, argstr='', dryrun=False, skip=True):
+def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=False, mem_mb=18000, file_gb=50, argstr='', dryrun=False, skip=True):
 
     # Default
-    if not outputdir:
-        outputdir = os.path.join(bidsdir,'derivatives')
+    bidsdir   = Path(bidsdir)
+    outputdir = Path(outputdir)
+    if not outputdir.name:
+        outputdir = bidsdir/'derivatives'
 
     # Map the bids sub-directories
     if not subject_label:
-        sub_dirs = glob.glob(os.path.join(bidsdir, 'sub-*'))
+        sub_dirs = list(bidsdir.glob('sub-*'))
     else:
-        sub_dirs = [os.path.join(bidsdir, 'sub-' + label.replace('sub-','')) for label in subject_label]
+        sub_dirs = [bidsdir/('sub-' + label.replace('sub-','')) for label in subject_label]
 
     # Loop over the bids sub-directories and submit a job for every (new) subject
     for n, sub_dir in enumerate(sub_dirs,1):
 
-        if not os.path.isdir(sub_dir):
-            print('>>> Directory does not exist: ' + sub_dir)
+        if not sub_dir.is_dir():
+            print(f">>> Directory does not exist: {sub_dir}")
             continue
 
         # Identify what data sessions we have
-        sub_id       = 'sub-' + sub_dir.rsplit('sub-')[1].split(os.sep)[0]
-        ses_dirs_in  = [os.path.basename(ses_dir) for ses_dir in glob.glob(os.path.join(sub_dir, 'ses-*'))]
-        ses_dirs_out = [os.path.basename(ses_dir) for ses_dir in glob.glob(os.path.join(outputdir, 'fmriprep', sub_id, 'ses-*'))]
+        sub_id       = [part for part in sub_dir.parts if part.startswith('sub-')][0]
+        ses_dirs_in  = [ses_dir.name for ses_dir in sub_dir.glob('ses-*')]
+        ses_dirs_out = [ses_dir.name for ses_dir in (outputdir/'fmriprep'/sub_id).glob('ses-*')]
 
         # Define a (clean) subject specific work directory and clean-up when done
-        if not workdir:
-            workdir = os.path.join(os.sep, 'data', os.environ['USER'], '\$\{PBS_JOBID\}')
+        if not workdir_:
+            workdir = Path('/data')/os.environ['USER']/'\$\{PBS_JOBID\}'
         else:
-            workdir = os.path.join(workdir, sub_id)
+            workdir = Path(workdir_)/sub_id
             file_gb = 1                                                 # We don't need much local scratch space
 
         # A subject is considered already done if there is a html-report and all sessions have been processed
-        report = os.path.join(outputdir, 'fmriprep', sub_id + '.html')
+        report = outputdir/'fmriprep'/(sub_id + '.html')
         if len(ses_dirs_in) == len(ses_dirs_out):
             sessions = [ses_dir_in in ses_dirs_out for ses_dir_in in ses_dirs_in]
         else:
             sessions = [False]
-        if force or not os.path.isfile(report) or not all(sessions):
+        if force or not report.is_file() or not all(sessions):
 
             # Start with a clean directory if we are forcing to reprocess the data (as presumably something went wrong or has changed)
             if not dryrun:
-                if force and os.path.isdir(workdir):
+                if force and workdir.is_dir():
                     shutil.rmtree(workdir, ignore_errors=True)          # NB: This can also be done in parallel on the cluster if it takes too much time
-                if os.path.isfile(report):
-                    os.remove(report)
+                if report.is_file():
+                    report.unlink()
 
             # Submit the job to the compute cluster
             command = """qsub -l walltime=70:00:00,mem={mem_mb}mb,file={file_gb}gb,epilogue={epilogue} -N fmriprep_sub-{sub_id} <<EOF
                          module add fmriprep; cd {pwd}
                          {fmriprep} {bidsdir} {outputdir} participant -w {workdir} --participant-label {sub_id} --skip-bids-validation --fs-license-file {licensefile} --mem_mb {mem_mb} --omp-nthreads 1 --nthreads 1 {args}\nEOF"""\
-                         .format(pwd         = os.getcwd(),
+                         .format(pwd         = Path.cwd(),
                                  fmriprep    = f'unset PYTHONPATH; export PYTHONNOUSERSITE=1; singularity run {os.getenv("DCCN_OPT_DIR")}/fmriprep/{os.getenv("FMRIPREP_VERSION")}/fmriprep-{os.getenv("FMRIPREP_VERSION")}.simg',
                                  bidsdir     = bidsdir,
                                  outputdir   = outputdir,
@@ -74,21 +75,20 @@ def main(bidsdir, outputdir, workdir, subject_label=(), force=False, mem_mb=1800
                                  epilogue    = f'{os.getenv("DCCN_OPT_DIR")}/fmriprep/dccn/epilogue.sh')
             running = subprocess.run('if [ ! -z "$(qselect -s RQH)" ]; then qstat -f $(qselect -s RQH) | grep Job_Name | grep fmriprep_; fi', stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             if skip and f'fmriprep_{sub_id}' in running.stdout.decode():
-                print(f'>>> Skipping already running / scheduled job ({n}/{len(sub_dirs)}): fmriprep_{sub_id}')
+                print(f">>> Skipping already running / scheduled job ({n}/{len(sub_dirs)}): fmriprep_{sub_id}")
             else:
-                print(f'>>> Submitting job ({n}/{len(sub_dirs)}):\n{command}')
+                print(f">>> Submitting job ({n}/{len(sub_dirs)}):\n{command}")
                 if not dryrun:
                     proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
                     if proc.returncode != 0:
-                        print('WARNING: Job submission failed with error-code {}\n'.format(proc.returncode))
+                        print(f"WARNING: Job submission failed with error-code {proc.returncode}\n")
 
         else:
-            print(f'>>> Nothing to do for job ({n}/{len(sub_dirs)}): {sub_dir} (--> {report})')
+            print(f">>> Nothing to do for job ({n}/{len(sub_dirs)}): {sub_dir} (--> {report})")
 
     print('\n----------------\n' 
           'Done! Now wait for the jobs to finish... Check that e.g. with this command:\n\n  qstat -a $(qselect -s RQ) | grep fmriprep_sub\n\n'
-          'For more details, see:\n\n'
-          '  fmriprep -h\n'.format(outputdir=outputdir))
+          'For more details, see:\n\n  fmriprep -h\n')
 
 
 # Shell usage
@@ -116,8 +116,8 @@ if __name__ == "__main__":
                                             'author:\n'
                                             '  Marcel Zwiers\n ')
     parser.add_argument('bidsdir',                  help='The bids-directory with the (new) subject data')
-    parser.add_argument('-o','--outputdir',         help='The output-directory where the frmiprep output is stored (None -> bidsdir/derivatives)')
-    parser.add_argument('-w','--workdir',           help='The working-directory where intermediate files are stored (None -> temporary directory')
+    parser.add_argument('-o','--outputdir',         help='The output-directory where the frmiprep output is stored (default = bidsdir/derivatives)', default='derivatives')
+    parser.add_argument('-w','--workdir',           help='The working-directory where intermediate files are stored (default = temporary directory', default='')
     parser.add_argument('-p','--participant_label', help='Space seperated list of sub-# identifiers to be processed (the sub- prefix can be removed). Otherwise all sub-folders in the bidsfolder will be processed', nargs='+')
     parser.add_argument('-f','--force',             help='If this flag is given subjects will be processed, regardless of existing folders in the bidsfolder. Otherwise existing folders will be skipped', action='store_true')
     parser.add_argument('-i','--ignore',            help='If this flag is given then already running or scheduled jobs with the same name are ignored, otherwise job submission is skipped', action='store_false')
@@ -127,4 +127,4 @@ if __name__ == "__main__":
     parser.add_argument('-d','--dryrun',            help='Add this flag to just print the fmriprep qsub commands without actually submitting them (useful for debugging)', action='store_true')
     args = parser.parse_args()
 
-    main(bidsdir=args.bidsdir, outputdir=args.outputdir, workdir=args.workdir, subject_label=args.participant_label, force=args.force, mem_mb=args.mem_mb, file_gb=args.scratch_gb, argstr=args.args, dryrun=args.dryrun, skip=args.ignore)
+    main(bidsdir=args.bidsdir, outputdir=args.outputdir, workdir_=args.workdir, subject_label=args.participant_label, force=args.force, mem_mb=args.mem_mb, file_gb=args.scratch_gb, argstr=args.args, dryrun=args.dryrun, skip=args.ignore)
