@@ -10,7 +10,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=False, mem_mb=18000, file_gb=50, argstr='', dryrun=False, skip=True):
+def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=False, mem_mb=18000, file_gb_=50, argstr='', dryrun=False, skip=True):
 
     # Default
     bidsdir   = Path(bidsdir)
@@ -39,7 +39,7 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
         # Define a (clean) subject specific work directory and allocate space there
         if not workdir_:
             workdir = Path('/data')/os.environ['USER']/'\$\{PBS_JOBID\}'
-            file_gb = f"file={file_gb}gb,"
+            file_gb = f"file={file_gb_}gb,"
         else:
             workdir = Path(workdir_)/sub_id
             file_gb = ''                                                 # We don't need to allocate local scratch space
@@ -128,4 +128,4 @@ if __name__ == "__main__":
     parser.add_argument('-d','--dryrun',            help='Add this flag to just print the fmriprep qsub commands without actually submitting them (useful for debugging)', action='store_true')
     args = parser.parse_args()
 
-    main(bidsdir=args.bidsdir, outputdir=args.outputdir, workdir_=args.workdir, subject_label=args.participant_label, force=args.force, mem_mb=args.mem_mb, file_gb=args.scratch_gb, argstr=args.args, dryrun=args.dryrun, skip=args.ignore)
+    main(bidsdir=args.bidsdir, outputdir=args.outputdir, workdir_=args.workdir, subject_label=args.participant_label, force=args.force, mem_mb=args.mem_mb, file_gb_=args.scratch_gb, argstr=args.args, dryrun=args.dryrun, skip=args.ignore)
