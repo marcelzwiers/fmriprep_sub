@@ -36,12 +36,13 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
         ses_dirs_in  = [ses_dir.name for ses_dir in sub_dir.glob('ses-*')]
         ses_dirs_out = [ses_dir.name for ses_dir in (outputdir/'fmriprep'/sub_id).glob('ses-*')]
 
-        # Define a (clean) subject specific work directory and clean-up when done
+        # Define a (clean) subject specific work directory and allocate space there
         if not workdir_:
             workdir = Path('/data')/os.environ['USER']/'\$\{PBS_JOBID\}'
+            file_gb = f"file={file_gb}gb,"
         else:
             workdir = Path(workdir_)/sub_id
-            file_gb = 1                                                 # We don't need much local scratch space
+            file_gb = ''                                                 # We don't need to allocate local scratch space
 
         # A subject is considered already done if there is a html-report and all sessions have been processed
         report = outputdir/'fmriprep'/(sub_id + '.html')
@@ -59,7 +60,7 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
                     report.unlink()
 
             # Submit the job to the compute cluster
-            command = """qsub -l walltime=70:00:00,mem={mem_mb}mb,file={file_gb}gb,epilogue={epilogue} -N fmriprep_sub-{sub_id} <<EOF
+            command = """qsub -l walltime=70:00:00,mem={mem_mb}mb,{file_gb}epilogue={epilogue} -N fmriprep_sub-{sub_id} <<EOF
                          module add fmriprep; cd {pwd}
                          {fmriprep} {bidsdir} {outputdir} participant -w {workdir} --participant-label {sub_id} --skip-bids-validation --fs-license-file {licensefile} --mem_mb {mem_mb} --omp-nthreads 1 --nthreads 1 {args}\nEOF"""\
                          .format(pwd         = Path.cwd(),
@@ -121,8 +122,8 @@ if __name__ == "__main__":
     parser.add_argument('-p','--participant_label', help='Space seperated list of sub-# identifiers to be processed (the sub- prefix can be removed). Otherwise all sub-folders in the bidsfolder will be processed', nargs='+')
     parser.add_argument('-f','--force',             help='If this flag is given subjects will be processed, regardless of existing folders in the bidsfolder. Otherwise existing folders will be skipped', action='store_true')
     parser.add_argument('-i','--ignore',            help='If this flag is given then already running or scheduled jobs with the same name are ignored, otherwise job submission is skipped', action='store_false')
-    parser.add_argument('-m','--mem_mb',            help='Maximum required amount of memory (in mb)', default=18000, type=int)
-    parser.add_argument('-s','--scratch_gb',        help='Maximum required free diskspace of the workdir (in gb)', default=50, type=int)
+    parser.add_argument('-m','--mem_mb',            help='Required amount of memory (in mb)', default=18000, type=int)
+    parser.add_argument('-s','--scratch_gb',        help='Required free diskspace of the workdir (in gb)', default=50, type=int)
     parser.add_argument('-a','--args',              help='Additional arguments that are passed to fmriprep (NB: Use quotes and a leading space to prevent unintended parsing)', type=str, default='')
     parser.add_argument('-d','--dryrun',            help='Add this flag to just print the fmriprep qsub commands without actually submitting them (useful for debugging)', action='store_true')
     args = parser.parse_args()
