@@ -61,7 +61,7 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
 
             # Submit the job to the compute cluster
             command = """qsub -l walltime=70:00:00,mem={mem_mb}mb,{file_gb}epilogue={epilogue} -N fmriprep_sub-{sub_id} <<EOF
-                         module add fmriprep; cd {pwd}
+                         cd {pwd}
                          {fmriprep} {bidsdir} {outputdir} participant -w {workdir} --participant-label {sub_id} --skip-bids-validation --fs-license-file {licensefile} --mem_mb {mem_mb} --omp-nthreads 1 --nthreads 1 {args}\nEOF"""\
                          .format(pwd         = Path.cwd(),
                                  fmriprep    = f'unset PYTHONPATH; export PYTHONNOUSERSITE=1; singularity run --cleanenv {os.getenv("DCCN_OPT_DIR")}/fmriprep/{os.getenv("FMRIPREP_VERSION")}/fmriprep-{os.getenv("FMRIPREP_VERSION")}.simg',
@@ -123,7 +123,7 @@ if __name__ == "__main__":
     parser.add_argument('-f','--force',             help='If this flag is given subjects will be processed, regardless of existing folders in the bidsfolder. Otherwise existing folders will be skipped', action='store_true')
     parser.add_argument('-i','--ignore',            help='If this flag is given then already running or scheduled jobs with the same name are ignored, otherwise job submission is skipped', action='store_false')
     parser.add_argument('-m','--mem_mb',            help='Required amount of memory (in mb)', default=18000, type=int)
-    parser.add_argument('-s','--scratch_gb',        help='Required free diskspace of the workdir (in gb)', default=50, type=int)
+    parser.add_argument('-s','--scratch_gb',        help='Required free diskspace of the local temporary workdir (in gb)', default=50, type=int)
     parser.add_argument('-a','--args',              help='Additional arguments that are passed to fmriprep (NB: Use quotes and a leading space to prevent unintended parsing)', type=str, default='')
     parser.add_argument('-d','--dryrun',            help='Add this flag to just print the fmriprep qsub commands without actually submitting them (useful for debugging)', action='store_true')
     args = parser.parse_args()
