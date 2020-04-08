@@ -38,8 +38,8 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
 
         # Define a (clean) subject specific work directory and allocate space there
         if not workdir_:
-            workdir = Path('/data')/os.environ['USER']/'\$\{PBS_JOBID\}'
-            file_gb = f"file={file_gb_}gb,"
+            workdir = '\$TMPDIR'
+            file_gb = f",file={file_gb_}gb"
         else:
             workdir = Path(workdir_)/sub_id
             file_gb = ''                                                 # We don't need to allocate local scratch space
@@ -60,7 +60,7 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
                     report.unlink()
 
             # Submit the job to the compute cluster
-            command = """qsub -l walltime=70:00:00,mem={mem_mb}mb,{file_gb}epilogue={epilogue} -N fmriprep_sub-{sub_id} <<EOF
+            command = """qsub -l walltime=70:00:00,mem={mem_mb}mb{file_gb} -N fmriprep_sub-{sub_id} <<EOF
                          cd {pwd}
                          {fmriprep} {bidsdir} {outputdir} participant -w {workdir} --participant-label {sub_id} --skip-bids-validation --fs-license-file {licensefile} --mem_mb {mem_mb} --omp-nthreads 1 --nthreads 1 {args}\nEOF"""\
                          .format(pwd         = Path.cwd(),
@@ -72,8 +72,7 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
                                  licensefile = os.getenv('FS_LICENSE'),
                                  mem_mb      = mem_mb,
                                  file_gb     = file_gb,
-                                 args        = argstr,
-                                 epilogue    = f'{os.getenv("DCCN_OPT_DIR")}/fmriprep/dccn/epilogue.sh')
+                                 args        = argstr)
             running = subprocess.run('if [ ! -z "$(qselect -s RQH)" ]; then qstat -f $(qselect -s RQH) | grep Job_Name | grep fmriprep_; fi', stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             if skip and f'fmriprep_{sub_id}' in running.stdout.decode():
                 print(f">>> Skipping already running / scheduled job ({n}/{len(sub_dirs)}): fmriprep_{sub_id}")
