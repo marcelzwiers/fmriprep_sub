@@ -10,7 +10,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=False, mem_mb=18000, file_gb_=50, argstr='', dryrun=False, skip=True):
+def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=False, mem_mb=18000, walltime=48, file_gb_=50, argstr='', dryrun=False, skip=True):
 
     # Default
     bidsdir   = Path(bidsdir)
@@ -60,7 +60,7 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
                     report.unlink()
 
             # Submit the job to the compute cluster
-            command = """qsub -l walltime=70:00:00,mem={mem_mb}mb{file_gb} -N fmriprep_sub-{sub_id} <<EOF
+            command = """qsub -l walltime={walltime}:00:00,mem={mem_mb}mb{file_gb} -N fmriprep_sub-{sub_id} <<EOF
                          cd {pwd}
                          {fmriprep} {bidsdir} {outputdir} participant -w {workdir} --participant-label {sub_id} --skip-bids-validation --fs-license-file {licensefile} --mem_mb {mem_mb} --omp-nthreads 1 --nthreads 1 {args}\nEOF"""\
                          .format(pwd         = Path.cwd(),
@@ -71,6 +71,7 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
                                  sub_id      = sub_id[4:],
                                  licensefile = os.getenv('FS_LICENSE'),
                                  mem_mb      = mem_mb,
+                                 walltime    = walltime,
                                  file_gb     = file_gb,
                                  args        = argstr)
             running = subprocess.run('if [ ! -z "$(qselect -s RQH)" ]; then qstat -f $(qselect -s RQH) | grep Job_Name | grep fmriprep_; fi', stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
@@ -122,9 +123,20 @@ if __name__ == "__main__":
     parser.add_argument('-f','--force',             help='If this flag is given subjects will be processed, regardless of existing folders in the bidsfolder. Otherwise existing folders will be skipped', action='store_true')
     parser.add_argument('-i','--ignore',            help='If this flag is given then already running or scheduled jobs with the same name are ignored, otherwise job submission is skipped', action='store_false')
     parser.add_argument('-m','--mem_mb',            help='Required amount of memory (in mb)', default=18000, type=int)
+    parser.add_argument('-t','--time',              help='Required walltime (in hours)', default=48, type=int)
     parser.add_argument('-s','--scratch_gb',        help='Required free diskspace of the local temporary workdir (in gb)', default=50, type=int)
     parser.add_argument('-a','--args',              help='Additional arguments that are passed to fmriprep (NB: Use quotes and a leading space to prevent unintended parsing)', type=str, default='')
     parser.add_argument('-d','--dryrun',            help='Add this flag to just print the fmriprep qsub commands without actually submitting them (useful for debugging)', action='store_true')
     args = parser.parse_args()
 
-    main(bidsdir=args.bidsdir, outputdir=args.outputdir, workdir_=args.workdir, subject_label=args.participant_label, force=args.force, mem_mb=args.mem_mb, file_gb_=args.scratch_gb, argstr=args.args, dryrun=args.dryrun, skip=args.ignore)
+    main(bidsdir       = args.bidsdir,
+         outputdir     = args.outputdir,
+         workdir_      = args.workdir,
+         subject_label = args.participant_label,
+         force         = args.force,
+         mem_mb        = args.mem_mb,
+         walltime      = args.time,
+         file_gb_      = args.scratch_gb,
+         argstr        = args.args,
+         dryrun        = args.dryrun,
+         skip          = args.ignore)
