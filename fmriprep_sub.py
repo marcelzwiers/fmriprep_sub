@@ -10,7 +10,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=False, mem_mb=18000, walltime=48, file_gb_=50, argstr='', dryrun=False, skip=True):
+def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=False, mem_mb=18000, walltime=48, file_gb_=50, argstr='', qargstr='', dryrun=False, skip=True):
 
     # Default
     bidsdir   = Path(bidsdir)
@@ -60,7 +60,7 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
                     report.unlink()
 
             # Submit the job to the compute cluster
-            command = """qsub -l walltime={walltime}:00:00,mem={mem_mb}mb{file_gb} -N fmriprep_sub-{sub_id} <<EOF
+            command = """qsub -l walltime={walltime}:00:00,mem={mem_mb}mb{file_gb} -N fmriprep_sub-{sub_id} {qargs} <<EOF
                          cd {pwd}
                          {fmriprep} {bidsdir} {outputdir} participant -w {workdir} --participant-label {sub_id} --skip-bids-validation --fs-license-file {licensefile} --mem_mb {mem_mb} --omp-nthreads 1 --nthreads 1 {args}\nEOF"""\
                          .format(pwd         = Path.cwd(),
@@ -73,7 +73,8 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
                                  mem_mb      = mem_mb,
                                  walltime    = walltime,
                                  file_gb     = file_gb,
-                                 args        = argstr)
+                                 args        = argstr,
+                                 qargs       = qargstr)
             running = subprocess.run('if [ ! -z "$(qselect -s RQH)" ]; then qstat -f $(qselect -s RQH) | grep Job_Name | grep fmriprep_; fi', stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             if skip and f'fmriprep_{sub_id}' in running.stdout.decode():
                 print(f">>> Skipping already running / scheduled job ({n}/{len(sub_dirs)}): fmriprep_{sub_id}")
@@ -112,7 +113,7 @@ if __name__ == "__main__":
                                             '  fmriprep_sub.py /project/3017065.01/bids -w /project/3017065.01/fmriprep_work\n'
                                             '  fmriprep_sub.py /project/3017065.01/bids -o /project/3017065.01/fmriprep --participant_label sub-P010 sub-P018\n'
                                             '  fmriprep_sub.py /project/3017065.01/bids -a " --fs-no-reconall"\n'
-                                            '  fmriprep_sub.py /project/3017065.01/bids -a " --use-aroma --ignore slicetiming --output-spaces MNI152NLin6Asym"\n'
+                                            '  fmriprep_sub.py /project/3017065.01/bids -a " --use-aroma --return-all-components --ignore slicetiming --output-spaces MNI152NLin6Asym"\n'
                                             '  fmriprep_sub.py -f -m 40000 /project/3017065.01/bids -p P018\n\n'
                                             'author:\n'
                                             '  Marcel Zwiers\n ')
@@ -125,7 +126,8 @@ if __name__ == "__main__":
     parser.add_argument('-m','--mem_mb',            help='Required amount of memory (in mb)', default=18000, type=int)
     parser.add_argument('-t','--time',              help='Required walltime (in hours)', default=48, type=int)
     parser.add_argument('-s','--scratch_gb',        help='Required free diskspace of the local temporary workdir (in gb)', default=50, type=int)
-    parser.add_argument('-a','--args',              help='Additional arguments that are passed to fmriprep (NB: Use quotes and a leading space to prevent unintended parsing)', type=str, default='')
+    parser.add_argument('-a','--args',              help='Additional arguments that are passed to fmriprep (NB: Use quotes and a leading space to prevent unintended argument parsing)', type=str, default='')
+    parser.add_argument('-q','--qargs',             help='Additional arguments that are passed to qsub (NB: Use quotes and a leading space to prevent unintended argument parsing)', type=str, default='')
     parser.add_argument('-d','--dryrun',            help='Add this flag to just print the fmriprep qsub commands without actually submitting them (useful for debugging)', action='store_true')
     args = parser.parse_args()
 
@@ -138,5 +140,6 @@ if __name__ == "__main__":
          walltime      = args.time,
          file_gb_      = args.scratch_gb,
          argstr        = args.args,
+         qargstr       = args.qargs,
          dryrun        = args.dryrun,
          skip          = args.ignore)
