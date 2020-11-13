@@ -10,7 +10,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=False, mem_mb=18000, walltime=48, file_gb_=50, argstr='', qargstr='', dryrun=False, skip=True):
+def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=False, mem_mb=18000, walltime=48, file_gb_=50, nprocs=1, argstr='', qargstr='', dryrun=False, skip=True):
 
     # Default
     bidsdir   = Path(bidsdir)
@@ -59,10 +59,13 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
                 if report.is_file():
                     report.unlink()
 
+            # Set the number of threads between 1 and 8 (see https://github.com/nipreps/fmriprep/pull/2071)
+            nthreads = min(8, nprocs - 1 if nprocs > 1 else 1)
+
             # Submit the job to the compute cluster
-            command = """qsub -l walltime={walltime}:00:00,mem={mem_mb}mb{file_gb} -N fmriprep_sub-{sub_id} {qargs} <<EOF
+            command = """qsub -l nodes=1:ppn={nprocs},walltime={walltime}:00:00,mem={mem_mb}mb{file_gb} -N fmriprep_sub-{sub_id} {qargs} <<EOF
                          cd {pwd}
-                         {fmriprep} {bidsdir} {outputdir} participant -w {workdir} --participant-label {sub_id} --skip-bids-validation --fs-license-file {licensefile} --mem_mb {mem_mb} --omp-nthreads 1 --nthreads 1 {args}\nEOF"""\
+                         {fmriprep} {bidsdir} {outputdir} participant -w {workdir} --participant-label {sub_id} --skip-bids-validation --fs-license-file {licensefile} --mem_mb {mem_mb} --omp-nthreads {nthreads} --nprocs {nprocs} {args}\nEOF"""\
                          .format(pwd         = Path.cwd(),
                                  fmriprep    = f'unset PYTHONPATH; export PYTHONNOUSERSITE=1; singularity run --cleanenv {os.getenv("DCCN_OPT_DIR")}/fmriprep/{os.getenv("FMRIPREP_VERSION")}/fmriprep-{os.getenv("FMRIPREP_VERSION")}.simg',
                                  bidsdir     = bidsdir,
@@ -70,6 +73,8 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
                                  workdir     = workdir,
                                  sub_id      = sub_id[4:],
                                  licensefile = os.getenv('FS_LICENSE'),
+                                 nthreads    = nthreads,
+                                 nprocs      = nprocs,
                                  mem_mb      = mem_mb,
                                  walltime    = walltime,
                                  file_gb     = file_gb,
@@ -124,6 +129,7 @@ if __name__ == "__main__":
     parser.add_argument('-f','--force',             help='If this flag is given subjects will be processed, regardless of existing folders in the bidsfolder. Otherwise existing folders will be skipped', action='store_true')
     parser.add_argument('-i','--ignore',            help='If this flag is given then already running or scheduled jobs with the same name are ignored, otherwise job submission is skipped', action='store_false')
     parser.add_argument('-m','--mem_mb',            help='Required amount of memory (in mb)', default=18000, type=int)
+    parser.add_argument('-n','--nprocs',            help='Number of processes per job (subject). You can increase it to speed up the processing of small datasets (< ~25 subjects), see https://fmriprep.org/en/stable/faq.html#running-subjects-in-parallel', choices=range(1,9), default=1, type=int)
     parser.add_argument('-t','--time',              help='Required walltime (in hours)', default=48, type=int)
     parser.add_argument('-s','--scratch_gb',        help='Required free diskspace of the local temporary workdir (in gb)', default=50, type=int)
     parser.add_argument('-a','--args',              help='Additional arguments that are passed to fmriprep (NB: Use quotes and a leading space to prevent unintended argument parsing)', type=str, default='')
@@ -138,6 +144,7 @@ if __name__ == "__main__":
          force         = args.force,
          mem_mb        = args.mem_mb,
          walltime      = args.time,
+         nprocs        = args.nprocs,
          file_gb_      = args.scratch_gb,
          argstr        = args.args,
          qargstr       = args.qargs,
