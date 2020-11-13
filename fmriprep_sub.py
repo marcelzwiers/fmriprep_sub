@@ -10,13 +10,16 @@ import shutil
 import subprocess
 from pathlib import Path
 
-def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=False, mem_mb=18000, walltime=48, file_gb_=50, nprocs=1, argstr='', qargstr='', dryrun=False, skip=True):
+def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=False, mem_mb=20000, walltime=48, file_gb_=50, nprocs=None, argstr='', qargstr='', dryrun=False, skip=True):
 
     # Default
     bidsdir   = Path(bidsdir)
     outputdir = Path(outputdir)
     if not outputdir.name:
         outputdir = bidsdir/'derivatives'
+    if not nprocs:                                      # Set the number of threads between 1 and 8 (but see https://github.com/nipreps/fmriprep/pull/2071)
+        nprocs = min(8, max(1, round(mem_mb / 10000)))  # Allocating ~10GB / CPU core
+    nthreads = min(8, nprocs)
 
     # Map the bids sub-directories
     if not subject_label:
@@ -58,9 +61,6 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
                     shutil.rmtree(workdir, ignore_errors=True)          # NB: This can also be done in parallel on the cluster if it takes too much time
                 if report.is_file():
                     report.unlink()
-
-            # Set the number of threads between 1 and 8 (see https://github.com/nipreps/fmriprep/pull/2071)
-            nthreads = min(8, nprocs)
 
             # Submit the job to the compute cluster
             command = """qsub -l nodes=1:ppn={nprocs},walltime={walltime}:00:00,mem={mem_mb}mb{file_gb} -N fmriprep_sub-{sub_id} {qargs} <<EOF
@@ -129,7 +129,7 @@ if __name__ == "__main__":
     parser.add_argument('-f','--force',             help='If this flag is given subjects will be processed, regardless of existing folders in the bidsfolder. Otherwise existing folders will be skipped', action='store_true')
     parser.add_argument('-i','--ignore',            help='If this flag is given then already running or scheduled jobs with the same name are ignored, otherwise job submission is skipped', action='store_false')
     parser.add_argument('-m','--mem_mb',            help='Required amount of memory (in mb)', default=20000, type=int)
-    parser.add_argument('-n','--nprocs',            help='Number of processes per job (subject). You can increase it to speed up the processing of small datasets (< ~25 subjects), see https://fmriprep.org/en/stable/faq.html#running-subjects-in-parallel', choices=range(1,9), default=2, type=int)
+    parser.add_argument('-n','--nprocs',            help='Number of compute threads (CPU cores) per job (subject). By default ~10GB/CPU core is allocated, i.e. nprocs = round(mem_mb/10000), but you can increase it to speed up the processing of small datasets (< ~25 subjects), see https://fmriprep.org/en/stable/faq.html#running-subjects-in-parallel', choices=range(1,9), type=int)
     parser.add_argument('-t','--time',              help='Required walltime (in hours)', default=48, type=int)
     parser.add_argument('-s','--scratch_gb',        help='Required free diskspace of the local temporary workdir (in gb)', default=50, type=int)
     parser.add_argument('-a','--args',              help='Additional arguments that are passed to fmriprep (NB: Use quotes and a leading space to prevent unintended argument parsing)', type=str, default='')
