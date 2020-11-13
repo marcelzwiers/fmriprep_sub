@@ -60,7 +60,7 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
                     report.unlink()
 
             # Set the number of threads between 1 and 8 (see https://github.com/nipreps/fmriprep/pull/2071)
-            nthreads = min(8, nprocs - 1 if nprocs > 1 else 1)
+            nthreads = min(8, nprocs)
 
             # Submit the job to the compute cluster
             command = """qsub -l nodes=1:ppn={nprocs},walltime={walltime}:00:00,mem={mem_mb}mb{file_gb} -N fmriprep_sub-{sub_id} {qargs} <<EOF
