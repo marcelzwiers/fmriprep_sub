@@ -38,7 +38,7 @@ def main(datadirs: list, maxwalltime_: float, maxmem_: float, bins: int):
         return
 
     # Plot the data
-    fig, axs = plt.subplots(len(datadirs), 2)
+    fig, axs = plt.subplots(len(datadirs), 2, num='HPC resource usage')
     if len(datadirs) == 1:
         axs = axs.reshape(1, 2)
     for n, datadir in enumerate(datadirs):
