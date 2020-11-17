@@ -4,6 +4,7 @@
 Plots walltime and memory usage of jobs submitted to the compute cluster.
 """
 
+import argparse
 import re
 import matplotlib.pyplot as plt
 from pathlib import Path
@@ -56,8 +57,7 @@ def main(datadirs: list, maxwalltime_: float, maxmem_: float):
 
 if __name__ == '__main__':
 
-    # Parse the input arguments and run bidscoiner(args)
-    import argparse
+    # Parse the input arguments and run hpc_resource_usage(args)
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter, description=__doc__)
     parser.add_argument('-w','--walltime', help='Maximum amount of used walltime (in hour) that is shown in the plots', type=float, default=float('Inf'))
     parser.add_argument('-m','--mem',      help='Maximum amount of used memory (in Gb) that is shown in the plots', type=float, default=float('Inf'))
