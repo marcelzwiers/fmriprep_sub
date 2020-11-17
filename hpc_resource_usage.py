@@ -24,7 +24,7 @@ def main(datadirs: list, maxwalltime_: float, maxmem_: float, bins: int):
         for logfile in [item for item in datadir.glob('*.o*') if item.is_file()]:
             with open(logfile, 'r') as fid_log:
                 try:
-                    resources = re.search('(Used resources:.*,walltime=.*,mem=.*)\n', fid_log.read())[1].split(',')    # Used resources:	   cput=03:22:23,walltime=01:01:53,mem=17452716032b
+                    resources = re.search(r'(Used resources:.*,walltime=.*,mem=.*)\n', fid_log.read())[1].split(',')    # Used resources:	   cput=03:22:23,walltime=01:01:53,mem=17452716032b
                     hhmmss    = resources[1].split('=')[1].split(':')
                     walltime[datadir].append(float(hhmmss[0]) + float(hhmmss[1])/60 + float(hhmmss[2])/(60*60))
                     mem[datadir].append(float(resources[2].split('=')[1][:-1]) / (1024**3))
@@ -61,7 +61,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter, description=__doc__)
     parser.add_argument('-w','--walltime', help='Maximum amount of used walltime (in hour) that is shown in the plots', type=float, default=float('Inf'))
     parser.add_argument('-m','--mem',      help='Maximum amount of used memory (in Gb) that is shown in the plots', type=float, default=float('Inf'))
-    parser.add_argument('-b','--bins',     help='Number of bins that are shown in the plots', type=int, default=100)
+    parser.add_argument('-b','--bins',     help='Number of bins that are shown in the plots', type=int, default=75)
     parser.add_argument('datafolders',     help='Space separated list of folders containing "*.o*" PBS-logfiles. It is assumed that the logfiles contain a line similar to "Used resources:	   cput=03:22:23,walltime=01:01:53,mem=17452716032b". Each folder is plotted as a separate row (indicated by the foldername). Try "demo" for plotting fmriprep demo data', nargs='*', default='.')
     args = parser.parse_args()
 
