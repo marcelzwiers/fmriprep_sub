@@ -24,7 +24,7 @@ def main(datadirs: list, maxwalltime_: float, maxmem_: float, bins: int):
         for logfile in [item for item in datadir.glob('*.o*') if item.is_file()]:
             with open(logfile, 'r') as fid_log:
                 try:
-                    resources = re.search('(Used resources:.*,walltime.*,mem.*)\n', fid_log.read())[1].split(',')    # Used resources:	   cput=03:22:23,walltime=01:01:53,mem=17452716032b
+                    resources = re.search('(Used resources:.*,walltime=.*,mem=.*)\n', fid_log.read())[1].split(',')    # Used resources:	   cput=03:22:23,walltime=01:01:53,mem=17452716032b
                     hhmmss    = resources[1].split('=')[1].split(':')
                     walltime[datadir].append(float(hhmmss[0]) + float(hhmmss[1])/60 + float(hhmmss[2])/(60*60))
                     mem[datadir].append(float(resources[2].split('=')[1][:-1]) / (1024**3))
