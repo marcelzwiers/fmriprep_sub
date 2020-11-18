@@ -66,6 +66,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.datafolders == ['demo']:
-        args.datafolders = ['/opt/fmriprep/dccn/nthreads = 1', '/opt/fmriprep/dccn/nthreads = 2', '/opt/fmriprep/dccn/nthreads = 4', '/opt/fmriprep/dccn/nthreads = 8']
+        args.datafolders = [Path(__file__).parent/'nthreads = 1', Path(__file__).parent/'nthreads = 2', Path(__file__).parent/'nthreads = 4', Path(__file__).parent/'nthreads = 8']
 
     main(datadirs=[Path(datadir) for datadir in args.datafolders], maxwalltime_=args.walltime, maxmem_=args.mem, bins=args.bins)
