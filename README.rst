@@ -46,7 +46,7 @@ The ``hpc_resource_usage.py`` utility plots walltime and memory usage of PBS job
 Example:
 --------
 
-The PBS logfiles of the ``fmriprep_sub.py`` command as shown above with 1, 2, 4 and 8 compute threads were saved in separate directories. These fmriprep (v20.2.1) benchmark results are plotted as example data when running the ``demo``:
+The PBS logfiles of the ``fmriprep_sub.py`` command as shown above with 1, 2, 3, 4 and 8 compute threads were saved in separate directories. These fmriprep (v20.2.1) benchmark results are plotted as example data when running the ``demo``:
 
 .. code-block:: console
 
@@ -60,7 +60,7 @@ The PBS logfiles of the ``fmriprep_sub.py`` command as shown above with 1, 2, 4 
 .. image:: ./hpc_resource_usage.png
    :alt: HPC resource usage histograms
 
-Conclusions:
+Conclusions on fmriprep multi-threading:
  - The memory usage is largely independent of the number of compute threads
  - The speed increase is not very significant when increasing the number of compute threads above 4
  - The majority of jobs has a comparable walltime, but some jobs take much longer. NB: the spread of the walltimes is increased by the heterogeneity of the DCCN compute cluster and occasional inconsistencies (repeats) in the data acquisition in certain (heavily moving) participants
