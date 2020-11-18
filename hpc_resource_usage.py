@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Plots walltime and memory usage of jobs submitted to the compute cluster.
+The hpc_resource_usage.py utility plots walltime and memory usage of PBS jobs submitted to the compute cluster.
 """
 
 import argparse
@@ -66,6 +66,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.datafolders == ['demo']:
-        args.datafolders = [Path(__file__).parent/'nthreads = 1', Path(__file__).parent/'nthreads = 2', Path(__file__).parent/'nthreads = 4', Path(__file__).parent/'nthreads = 8']
+        args.datafolders = [Path(__file__).parent/'nthreads=1', Path(__file__).parent/'nthreads=2', Path(__file__).parent/'nthreads=3', Path(__file__).parent/'nthreads=4', Path(__file__).parent/'nthreads=8']
 
     main(datadirs=[Path(datadir) for datadir in args.datafolders], maxwalltime_=args.walltime, maxmem_=args.mem, bins=args.bins)

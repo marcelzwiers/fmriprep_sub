@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-fmriprep_sub.py is a wrapper around fmriprep that queries the bids directory for new
-participants and then runs participant-level fmriprep jobs on the compute cluster.
+The fmriprep_sub.py utility is a wrapper around fmriprep that queries the BIDS directory for new participants and
+then runs them (as single-participant fmriprep jobs) on the compute cluster.
 """
 
 import os
