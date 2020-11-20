@@ -66,4 +66,3 @@ Conclusions on fmriprep v20.2.1 multi-threading:
  - The memory usage is largely independent of the number of compute threads
  - The speed increase is not very significant when increasing the number of compute threads above 4
  - The majority of jobs have a comparable walltime, but some jobs take much longer. NB: the spread of the walltimes is increased by the heterogeneity of the DCCN compute cluster and occasional inconsistencies (repeats) in the data acquisition in certain (heavily moving) participants
- - As shown by the peak in the walltime histogram below 2h, a significant fraction of the jobs failed when the number of compute threads was set to 8. The full trace of the error message (``could not run node: fmriprep_wf.single_subject_P001_wf.anat_preproc_wf.fs_isrunning``) can be seen e.g. in ``./nthreads=8/fmriprep_sub-P001.o40897230``
