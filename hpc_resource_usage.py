@@ -44,6 +44,7 @@ def main(datadirs: list, maxwalltime_: float, maxmem_: float, bins: int):
     for n, datadir in enumerate(datadirs):
         axs[n,0].hist(walltime[datadir], bins=bins, range=(0,min(maxwalltime,maxwalltime_)))
         axs[n,1].hist(     mem[datadir], bins=bins, range=(0,min(maxmem,maxmem_)))
+        axs[n,1].text(0.98, 0.94, f"N={len(walltime[datadir])}", horizontalalignment='right', verticalalignment='top', transform=axs[n,1].transAxes)
         axs[n,0].set_ylabel(datadir.name)
     axs[-1,0].set_xlabel('Walltime (hour)')
     axs[-1,1].set_xlabel('Memory (Gb)')
