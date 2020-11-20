@@ -70,6 +70,8 @@ def main(datadirs: list, maxwalltime_: float, maxmem_: float, bins: int, summary
         axs[-1,0].errorbar(meanwalltime, range(len(meanwalltime),0,-1), xerr=[stdwalltime, [a-b for a,b in zip(maxwalltime,meanwalltime)]], fmt='o')
         axs[-1,1].errorbar(meanmem,      range(len(meanmem),0,-1),      xerr=[stdmem,      [a-b for a,b in zip(maxmem,     meanmem)]],      fmt='o')
         axs[-1,0].set_ylabel('Summary')
+        axs[-1,0].set_ylim(-0.5, 1.5+len(meanwalltime))
+        axs[-1,1].set_ylim(-0.5, 1.5+len(meanmem))
 
     # plt.tight_layout()
     plt.show()
