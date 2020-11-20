@@ -91,9 +91,12 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
         else:
             print(f">>> Nothing to do for job ({n}/{len(sub_dirs)}): {sub_dir} (--> {report})")
 
-    print('\n----------------\n' 
-          'Done! Now wait for the jobs to finish... Check that e.g. with this command:\n\n  qstat -a $(qselect -s RQ) | grep fmriprep_sub\n\n'
-          'For more details, see:\n\n  fmriprep -h\n')
+    if sub_dirs:
+        print('\n----------------\n' 
+              'Done! Now wait for the jobs to finish... Check that e.g. with this command:\n\n  qstat -a $(qselect -s RQ) | grep fmriprep_sub\n\n'
+              'For more details, see:\n\n  fmriprep -h\n')
+    else:
+        print(f"No sub-folders found in {bidsdir}")
 
 
 # Shell usage
