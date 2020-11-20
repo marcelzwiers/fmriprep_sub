@@ -91,10 +91,10 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
         else:
             print(f">>> Nothing to do for job ({n}/{len(sub_dirs)}): {sub_dir} (--> {report})")
 
-    if dryrun:
-        print('\n----------------\nDone! NB: The printed jobs were not actually submitted')
-    elif not sub_dirs:
+    if not sub_dirs:
         print(f"No BIDS sub-folders found in {bidsdir}")
+    elif dryrun:
+        print('\n----------------\nDone! NB: The printed jobs were not actually submitted')
     else:
         print('\n----------------\n' 
               'Done! Now wait for the jobs to finish... Check that e.g. with this command:\n\n  qstat -a $(qselect -s RQ) | grep fmriprep_sub\n\n'
