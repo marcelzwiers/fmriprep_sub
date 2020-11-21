@@ -14,17 +14,18 @@ from pathlib import Path
 def meanstdmax(data=None, meandata=(), stddata=(), maxdata=()):
     if data is None:
         return [], [], []
-    if len(data)==0:
-        data = [0,0]
-    if len(data)==1:
-        data = data + data
+    if len(data) == 0:
+        data = [0,0]            # We don't want to raise a stdev error, just append zeros instead
+    if len(data) == 1:
+        data = data + data      # We don't want to raise a stdev error, just append (data, 0, data) instead
     meandata.append(mean(data))
     stddata.append(stdev(data))
     maxdata.append(max(data))
+
     return meandata, stddata, maxdata
 
 
-def main(datadirs: list, maxwalltime_: float, maxmem_: float, bins: int, summary:bool):
+def main(datadirs: list, maxwalltime_: float, maxmem_: float, bins: int, summary: bool):
 
     # Parse the walltime and memory usage
     meanwalltime, stdwalltime, maxwalltime = meanstdmax()
@@ -56,8 +57,8 @@ def main(datadirs: list, maxwalltime_: float, maxmem_: float, bins: int, summary
     if len(datadirs)==1 and not summary:
         axs = axs.reshape(1, 2)
     for n, datadir in enumerate(datadirs):
-        axs[n,0].hist(walltime[datadir], bins=bins, range=(0,min(max(maxwalltime), maxwalltime_)))
-        axs[n,1].hist(     mem[datadir], bins=bins, range=(0,min(max(maxmem), maxmem_)))
+        axs[n,0].hist(walltime[datadir], bins=bins, range=(0, min(maxwalltime_,max(maxwalltime))))
+        axs[n,1].hist(     mem[datadir], bins=bins, range=(0, min(maxmem_,max(maxmem))))
         axs[n,1].text(0.98, 0.94, f"N={len(walltime[datadir])}", horizontalalignment='right', verticalalignment='top', transform=axs[n,1].transAxes)
         axs[n,0].set_ylabel(datadir.name)
     axs[-1,0].set_xlabel('Walltime (hour)')
@@ -84,7 +85,7 @@ if __name__ == '__main__':
     parser.add_argument('-w','--walltime', help='Maximum amount of used walltime (in hour) that is shown in the plots', type=float, default=float('Inf'))
     parser.add_argument('-m','--mem',      help='Maximum amount of used memory (in Gb) that is shown in the plots', type=float, default=float('Inf'))
     parser.add_argument('-b','--bins',     help='Number of bins that are shown in the plots', type=int, default=75)
-    parser.add_argument('-s','--summary',  help='Show a summary plot in the final row', action='store_true')
+    parser.add_argument('-s','--summary',  help='Show a summary plot in the final row (left-error = stdev, right-error = max)', action='store_true')
     parser.add_argument('datafolders',     help='Space separated list of folders containing "*.o*" PBS-logfiles. It is assumed that the logfiles contain a line similar to "Used resources:	   cput=03:22:23,walltime=01:01:53,mem=17452716032b". Each folder is plotted as a separate row (indicated by the foldername). Try "demo" for plotting fmriprep demo data', nargs='*', default='.')
     args = parser.parse_args()
 

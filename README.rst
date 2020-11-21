@@ -52,7 +52,7 @@ The PBS logfiles of the ``fmriprep_sub.py`` command as shown above with 1, 2, 3,
 
 .. code-block:: console
 
-   $ hpc_resource_usage.py demo
+   $ hpc_resource_usage.py -s demo
    Reading logfiles from: "/opt/fmriprep/dccn/nthreads=1"
    Reading logfiles from: "/opt/fmriprep/dccn/nthreads=2"
    Reading logfiles from: "/opt/fmriprep/dccn/nthreads=3"
@@ -64,5 +64,5 @@ The PBS logfiles of the ``fmriprep_sub.py`` command as shown above with 1, 2, 3,
 
 Conclusions on fmriprep v20.2.1 multi-threading:
  - The memory usage is largely independent of the number of compute threads
- - The speed increase is not very significant when increasing the number of compute threads above 4
- - The majority of jobs have a comparable walltime, but some jobs take much longer. NB: the spread of the walltimes is increased by the heterogeneity of the DCCN compute cluster and occasional inconsistencies (repeats) in the data acquisition in certain (heavily moving) participants
+ - The speed increase is not very significant when increasing the number of compute threads above 3
+ - The majority of jobs require a comparable walltime and memory, but some jobs take much longer or require more memory. NB: the spread of the distributions is increased by the heterogeneity of the DCCN compute cluster and occasional inconsistencies (repeats) in the data acquisition in certain (heavily moving) participants
