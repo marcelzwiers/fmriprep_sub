@@ -7,7 +7,7 @@ The hpc_resource_usage.py utility plots walltime and memory usage of PBS jobs su
 import argparse
 import re
 import matplotlib.pyplot as plt
-from statistics import median, stdev
+from statistics import median
 from pathlib import Path
 
 
@@ -19,7 +19,7 @@ def medstdmax(data=None, meddata=(), stddata=(), maxdata=()):
     if len(data) == 1:
         data = data + data      # We don't want to raise a stdev error, just append (data, 0, data) instead
     meddata.append(median(data))
-    stddata.append(stdev(data))
+    stddata.append(1.4826 * median([abs(val-meddata[-1]) for val in data]))     # Robust stdev using the median absolute deviation (MAD) estimator
     maxdata.append(max(data))
 
     return meddata, stddata, maxdata
@@ -86,7 +86,7 @@ if __name__ == '__main__':
     parser.add_argument('-w','--walltime', help='Maximum amount of used walltime (in hour) that is shown in the plots', type=float, default=float('Inf'))
     parser.add_argument('-m','--mem',      help='Maximum amount of used memory (in Gb) that is shown in the plots', type=float, default=float('Inf'))
     parser.add_argument('-b','--bins',     help='Number of bins that are shown in the plots', type=int, default=75)
-    parser.add_argument('-s','--summary',  help='Show a median summary plot in the final row (left-error = stdev, right-error = max)', action='store_true')
+    parser.add_argument('-s','--summary',  help='Show a median summary plot in the final row (left-error = median-absolute-deviation (MAD), right-error = maximum)', action='store_true')
     parser.add_argument('datafolders',     help='Space separated list of folders containing "*.o*" PBS-logfiles. It is assumed that the logfiles contain a line similar to "Used resources:	   cput=03:22:23,walltime=01:01:53,mem=17452716032b". Each folder is plotted as a separate row (indicated by the foldername). Try "demo" for plotting fmriprep demo data', nargs='*', default='.')
     args = parser.parse_args()
 
