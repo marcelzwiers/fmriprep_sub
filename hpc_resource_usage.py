@@ -23,7 +23,7 @@ def medmadmax(data=None, meddata=(), maddata=(), maxdata=()):
     return meddata, maddata, maxdata
 
 
-def main(datadirs: list, maxwalltime_: float, maxmem_: float, bins: int, summary: bool):
+def main(datadirs: list, maxtime_: float, maxmem_: float, bins: int, summary: bool):
 
     # Parse the walltime and memory usage
     medtime, madtime, maxtime = medmadmax()
@@ -55,7 +55,7 @@ def main(datadirs: list, maxwalltime_: float, maxmem_: float, bins: int, summary
     if len(datadirs)==1 and not summary:
         axs = axs.reshape(1, 2)
     for n, datadir in enumerate(datadirs):
-        axs[n,0].hist(time[datadir], bins=bins, range=(0, min(maxwalltime_,max(maxtime))))
+        axs[n,0].hist(time[datadir], bins=bins, range=(0, min(maxtime_, max(maxtime))))
         axs[n,1].hist( mem[datadir], bins=bins, range=(0, min(maxmem_,max(maxmem))))
         axs[n,1].text(0.98, 0.94, f"N={len(time[datadir])}", horizontalalignment='right', verticalalignment='top', transform=axs[n,1].transAxes)
         axs[n,0].set_ylabel(datadir.name)
@@ -91,4 +91,4 @@ if __name__ == '__main__':
     if args.datafolders == ['demo']:
         args.datafolders = [Path(__file__).parent/'nthreads=1', Path(__file__).parent/'nthreads=2', Path(__file__).parent/'nthreads=3', Path(__file__).parent/'nthreads=4', Path(__file__).parent/'nthreads=8']
 
-    main(datadirs=[Path(datadir) for datadir in args.datafolders], maxwalltime_=args.walltime, maxmem_=args.mem, bins=args.bins, summary=args.summary)
+    main(datadirs=[Path(datadir) for datadir in args.datafolders], maxtime_=args.walltime, maxmem_=args.mem, bins=args.bins, summary=args.summary)
