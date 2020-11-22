@@ -63,6 +63,6 @@ The PBS logfiles of the ``fmriprep_sub.py`` command as shown above with 1, 2, 3,
    :alt: HPC resource usage histograms
 
 Conclusions on fmriprep v20.2.1 multi-threading:
- - The memory usage is largely independent of the number of compute threads
  - The speed increase is not very significant when increasing the number of compute threads above 3
+ - The memory usage increases linearly(?) with the number of compute threads, but is more variable with more threads
  - The majority of jobs require a comparable walltime and memory, but some jobs take much longer or require more memory. NB: the spread of the distributions is increased by the heterogeneity of the DCCN compute cluster and occasional inconsistencies (repeats) in the data acquisition in certain (heavily moving) participants
