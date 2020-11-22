@@ -15,9 +15,7 @@ def medmadmax(data=None, meddata=(), maddata=(), maxdata=()):
     if data is None:
         return [], [], []
     if len(data) == 0:
-        data = [0,0]            # We don't want to raise a stdev error, just append zeros instead
-    if len(data) == 1:
-        data = data + data      # We don't want to raise a stdev error, just append (data, 0, data) instead
+        data = [0]              # We don't want to raise a median error, just append zeros instead
     meddata.append(median(data))
     maddata.append(1.4826 * median([abs(val - meddata[-1]) for val in data]))     # Robust stdev using the median absolute deviation (MAD) estimator
     maxdata.append(max(data))
@@ -35,7 +33,7 @@ def main(datadirs: list, maxwalltime_: float, maxmem_: float, bins: int, summary
     for datadir in datadirs:
         print(f'Reading logfiles from: "{datadir}"')
         time[datadir] = list()
-        mem[datadir]      = list()
+        mem[datadir]  = list()
         for logfile in [item for item in datadir.glob('*.o*') if item.is_file()]:
             with open(logfile, 'r') as fid_log:
                 try:
