@@ -11,7 +11,7 @@ from statistics import median
 from pathlib import Path
 
 
-def medstdmax(data=None, meddata=(), stddata=(), maxdata=()):
+def medmadmax(data=None, meddata=(), maddata=(), maxdata=()):
     if data is None:
         return [], [], []
     if len(data) == 0:
@@ -19,17 +19,17 @@ def medstdmax(data=None, meddata=(), stddata=(), maxdata=()):
     if len(data) == 1:
         data = data + data      # We don't want to raise a stdev error, just append (data, 0, data) instead
     meddata.append(median(data))
-    stddata.append(1.4826 * median([abs(val-meddata[-1]) for val in data]))     # Robust stdev using the median absolute deviation (MAD) estimator
+    maddata.append(1.4826 * median([abs(val - meddata[-1]) for val in data]))     # Robust stdev using the median absolute deviation (MAD) estimator
     maxdata.append(max(data))
 
-    return meddata, stddata, maxdata
+    return meddata, maddata, maxdata
 
 
 def main(datadirs: list, maxwalltime_: float, maxmem_: float, bins: int, summary: bool):
 
     # Parse the walltime and memory usage
-    medtime, stdtime, maxtime = medstdmax()
-    medmem,  stdmem,  maxmem  = medstdmax()
+    medtime, madtime, maxtime = medmadmax()
+    medmem,  madmem,  maxmem  = medmadmax()
     time                      = dict()
     mem                       = dict()
     for datadir in datadirs:
@@ -46,8 +46,8 @@ def main(datadirs: list, maxwalltime_: float, maxmem_: float, bins: int, summary
                 except:
                     print(f"Could not parse: {logfile}")
                     continue
-        medtime, stdtime, maxtime = medstdmax(time[datadir], medtime, stdtime, maxtime)
-        medmem,  stdmem,  maxmem  = medstdmax(mem[datadir], medmem, stdmem, maxmem)
+        medtime, madtime, maxtime = medmadmax(time[datadir], medtime, madtime, maxtime)
+        medmem,  madmem,  maxmem  = medmadmax(mem[datadir], medmem, madmem, maxmem)
     if all(not time for time in medtime):
         print('Could not find or parse any logfile')
         return
@@ -68,8 +68,8 @@ def main(datadirs: list, maxwalltime_: float, maxmem_: float, bins: int, summary
 
     # Plot the summary data
     if summary:
-        axs[-1,0].errorbar(medtime, range(len(medtime),0,-1), xerr=[stdtime, [a-b for a,b in zip(maxtime,medtime)]], fmt='o')
-        axs[-1,1].errorbar(medmem,  range(len(medmem),0,-1),  xerr=[stdmem,  [a-b for a,b in zip(maxmem, medmem)]],  fmt='o')
+        axs[-1,0].errorbar(medtime, range(len(medtime),0,-1), xerr=[madtime, [a-b for a,b in zip(maxtime,medtime)]], fmt='o')
+        axs[-1,1].errorbar(medmem,  range(len(medmem),0,-1),  xerr=[madmem,  [a-b for a,b in zip(maxmem, medmem)]],  fmt='o')
         axs[-1,0].set_ylabel('Summary')
         axs[-1,0].set_ylim(-0.5, 1.5+len(medtime))
         axs[-1,1].set_ylim(-0.5, 1.5+len(medmem))
