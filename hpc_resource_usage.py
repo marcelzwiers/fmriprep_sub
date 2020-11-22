@@ -47,7 +47,7 @@ def main(datadirs: list, maxwalltime_: float, maxmem_: float, bins: int, summary
                     print(f"Could not parse: {logfile}")
                     continue
         medtime, madtime, maxtime = medmadmax(time[datadir], medtime, madtime, maxtime)
-        medmem,  madmem,  maxmem  = medmadmax(mem[datadir], medmem, madmem, maxmem)
+        medmem,  madmem,  maxmem  = medmadmax(mem[datadir],  medmem,  madmem,  maxmem)
     if all(not time for time in medtime):
         print('Could not find or parse any logfile')
         return
@@ -69,7 +69,7 @@ def main(datadirs: list, maxwalltime_: float, maxmem_: float, bins: int, summary
     # Plot the summary data
     if summary:
         axs[-1,0].errorbar(medtime, range(len(medtime),0,-1), xerr=[madtime, [a-b for a,b in zip(maxtime,medtime)]], fmt='o')
-        axs[-1,1].errorbar(medmem,  range(len(medmem),0,-1),  xerr=[madmem,  [a-b for a,b in zip(maxmem, medmem)]],  fmt='o')
+        axs[-1,1].errorbar(medmem,  range(len(medmem), 0,-1), xerr=[madmem,  [a-b for a,b in zip(maxmem, medmem)]],  fmt='o')
         axs[-1,0].set_ylabel('Summary')
         axs[-1,0].set_ylim(-0.5, 1.5+len(medtime))
         axs[-1,1].set_ylim(-0.5, 1.5+len(medmem))
