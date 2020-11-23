@@ -91,6 +91,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.datafolders == ['demo']:
-        args.datafolders = [Path(__file__).parent/'nthreads=1', Path(__file__).parent/'nthreads=2', Path(__file__).parent/'nthreads=3', Path(__file__).parent/'nthreads=4', Path(__file__).parent/'nthreads=8']
+        args.datafolders = [Path(__file__).parent/pbsdir for pbsdir in ['nthreads=1', 'nthreads=2', 'nthreads=3', 'nthreads=4', 'nthreads=8']]
 
     main(datadirs=[Path(datadir) for datadir in args.datafolders], maxtime_=args.walltime, maxmem_=args.mem, bins=args.bins, summary=args.summary)
