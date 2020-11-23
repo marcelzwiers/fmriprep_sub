@@ -93,4 +93,4 @@ if __name__ == '__main__':
     if args.datafolders == ['demo']:
         args.datafolders = [Path(__file__).parent/datafolder for datafolder in ['nthreads=1', 'nthreads=2', 'nthreads=3', 'nthreads=4', 'nthreads=8']]
 
-    main(datadirs=[Path(datadir) for datadir in args.datafolders], maxtime_=args.walltime, maxmem_=args.mem, bins=args.bins, summary=args.summary)
+    main(datadirs=[Path(datafolder) for datafolder in args.datafolders], maxtime_=args.walltime, maxmem_=args.mem, bins=args.bins, summary=args.summary)
