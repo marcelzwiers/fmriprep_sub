@@ -36,9 +36,9 @@ Example:
 
      qstat -a $(qselect -s RQ) | grep fmriprep_sub
 
-   For more details, see:
+   You can check how much memory and walltime your jobs have used by running:
 
-     fmriprep -h
+     hpc_resource_usage.py
 
 HPC resource usage
 ==================

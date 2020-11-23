@@ -98,7 +98,7 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
     else:
         print('\n----------------\n' 
               'Done! Now wait for the jobs to finish... Check that e.g. with this command:\n\n  qstat -a $(qselect -s RQ) | grep fmriprep_sub\n\n'
-              'For more details, see:\n\n  fmriprep -h\n')
+              'You can check how much memory and walltime your jobs have used by running:\n\n  hpc_resource_usage.py\n')
 
 
 # Shell usage
