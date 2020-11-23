@@ -69,6 +69,8 @@ def main(datadirs: list, maxtime_: float, maxmem_: float, bins: int, summary: bo
         axs[-1,0].errorbar(medtime, range(len(medtime),0,-1), xerr=[madtime, [a-b for a,b in zip(maxtime,medtime)]], fmt='o')
         axs[-1,1].errorbar(medmem,  range(len(medmem), 0,-1), xerr=[madmem,  [a-b for a,b in zip(maxmem, medmem)]],  fmt='o')
         axs[-1,0].set_ylabel('Summary')
+        axs[-1,0].set_xlim(   0, min(maxtime_, max(maxtime)))
+        axs[-1,1].set_xlim(   0, min(maxmem_,  max(maxmem)))
         axs[-1,0].set_ylim(-0.5, 1.5+len(medtime))
         axs[-1,1].set_ylim(-0.5, 1.5+len(medmem))
 
