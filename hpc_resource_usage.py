@@ -56,7 +56,7 @@ def main(datasets: list, maxtime_: float, maxmem_: float, bins: int, summary: bo
         axs = axs.reshape(1, 2)
     for n, dataset in enumerate(datasets):
         axs[n,0].hist(time[dataset], bins=bins, range=(0, min(maxtime_, max(maxtime))))
-        axs[n,1].hist( mem[dataset], bins=bins, range=(0, min(maxmem_,max(maxmem))))
+        axs[n,1].hist( mem[dataset], bins=bins, range=(0, min(maxmem_,  max(maxmem))))
         axs[n,1].text(0.98, 0.94, f"N={len(time[dataset])}", horizontalalignment='right', verticalalignment='top', transform=axs[n,1].transAxes)
         axs[n,0].set_ylabel(dataset.parent.name)
     axs[-1,0].set_xlabel('Walltime (hour)')
