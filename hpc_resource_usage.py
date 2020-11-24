@@ -93,6 +93,6 @@ if __name__ == '__main__':
     if args.datafolders == ['demo']:
         datafolders = [Path(__file__).parent/datafolder/'fmriprep_sub-*.o*' for datafolder in ['nthreads=1', 'nthreads=2', 'nthreads=3', 'nthreads=4', 'nthreads=8']]
     else:
-        datafolders = [Path(datafolder)/'*.o*' if '*' not in datafolder else Path(datafolder) for datafolder in args.datafolders]
+        datafolders = [Path(datafolder)/'*.o*' if ('?' not in datafolder and '*' not in datafolder and '[' not in datafolder) else Path(datafolder) for datafolder in args.datafolders]
 
     main(datadirs=datafolders, maxtime_=args.walltime, maxmem_=args.mem, bins=args.bins, summary=args.summary)
