@@ -87,12 +87,12 @@ if __name__ == '__main__':
     parser.add_argument('-m','--mem',      help='Maximum amount of used memory (in Gb) that is shown in the plots', type=float, default=float('Inf'))
     parser.add_argument('-b','--bins',     help='Number of bins that are shown in the plots', type=int, default=75)
     parser.add_argument('-s','--summary',  help='Show a median summary plot in the final row (left-error = median-absolute-deviation (MAD), right-error = maximum)', action='store_true')
-    parser.add_argument('datafolders',     help='Space separated list of folders containing PBS-logfiles. You can append glob-style wildcards for the filenames, otherwise "/*.o*" is appended automatically. It is assumed that the logfiles contain a line similar to "Used resources:	   cput=03:22:23,walltime=01:01:53,mem=17452716032b". Each folder is plotted as a separate row (indicated by the foldername). Try "demo" for plotting fmriprep demo data', nargs='*', default='.')
+    parser.add_argument('datafolders',     help='Space separated list of folders containing PBS-logfiles. You can append glob-style wildcards for the filenames, otherwise "/*.o[0-9]*" is appended automatically. It is assumed that the logfiles contain a line similar to "Used resources:	   cput=03:22:23,walltime=01:01:53,mem=17452716032b". Each folder is plotted as a separate row (indicated by the foldername). Try "demo" for plotting fmriprep demo data', nargs='*', default='.')
     args = parser.parse_args()
 
     if args.datafolders == ['demo']:
         datafolders = [Path(__file__).parent/datafolder/'fmriprep_sub-*.o*' for datafolder in ['nthreads=1', 'nthreads=2', 'nthreads=3', 'nthreads=4', 'nthreads=8']]
     else:
-        datafolders = [Path(datafolder)/'*.o*' if ('?' not in datafolder and '*' not in datafolder and '[' not in datafolder) else Path(datafolder) for datafolder in args.datafolders]
+        datafolders = [Path(datafolder)/'*.o[0-9]*' if ('?' not in datafolder and '*' not in datafolder and '[' not in datafolder) else Path(datafolder) for datafolder in args.datafolders]
 
     main(datadirs=datafolders, maxtime_=args.walltime, maxmem_=args.mem, bins=args.bins, summary=args.summary)
