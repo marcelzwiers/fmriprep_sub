@@ -34,7 +34,7 @@ def main(datadirs: list, maxtime_: float, maxmem_: float, bins: int, summary: bo
         print(f'Reading logfiles from: "{datadir}"')
         time[datadir] = list()
         mem[datadir]  = list()
-        for logfile in [item for item in datadir.glob('*.o*') if item.is_file()]:
+        for logfile in [item for item in datadir.parent.glob(datadir.name) if item.is_file()]:
             with open(logfile, 'r') as fid_log:
                 try:
                     resources = re.search(r'(Used resources:.*,walltime=.*,mem=.*)\n', fid_log.read())[1].split(',')    # Used resources:	   cput=03:22:23,walltime=01:01:53,mem=17452716032b
@@ -58,7 +58,7 @@ def main(datadirs: list, maxtime_: float, maxmem_: float, bins: int, summary: bo
         axs[n,0].hist(time[datadir], bins=bins, range=(0, min(maxtime_, max(maxtime))))
         axs[n,1].hist( mem[datadir], bins=bins, range=(0, min(maxmem_,max(maxmem))))
         axs[n,1].text(0.98, 0.94, f"N={len(time[datadir])}", horizontalalignment='right', verticalalignment='top', transform=axs[n,1].transAxes)
-        axs[n,0].set_ylabel(datadir.name)
+        axs[n,0].set_ylabel(datadir.parent.name)
     axs[-1,0].set_xlabel('Walltime (hour)')
     axs[-1,1].set_xlabel('Memory (Gb)')
     for ax in fig.get_axes():
@@ -87,10 +87,12 @@ if __name__ == '__main__':
     parser.add_argument('-m','--mem',      help='Maximum amount of used memory (in Gb) that is shown in the plots', type=float, default=float('Inf'))
     parser.add_argument('-b','--bins',     help='Number of bins that are shown in the plots', type=int, default=75)
     parser.add_argument('-s','--summary',  help='Show a median summary plot in the final row (left-error = median-absolute-deviation (MAD), right-error = maximum)', action='store_true')
-    parser.add_argument('datafolders',     help='Space separated list of folders containing "*.o*" PBS-logfiles. It is assumed that the logfiles contain a line similar to "Used resources:	   cput=03:22:23,walltime=01:01:53,mem=17452716032b". Each folder is plotted as a separate row (indicated by the foldername). Try "demo" for plotting fmriprep demo data', nargs='*', default='.')
+    parser.add_argument('datafolders',     help='Space separated list of folders containing PBS-logfiles. You can add a glob-style wildcard, otherwise "*.o*" is added automatically. It is assumed that the logfiles contain a line similar to "Used resources:	   cput=03:22:23,walltime=01:01:53,mem=17452716032b". Each folder is plotted as a separate row (indicated by the foldername). Try "demo" for plotting fmriprep demo data', nargs='*', default='.')
     args = parser.parse_args()
 
     if args.datafolders == ['demo']:
-        args.datafolders = [Path(__file__).parent/datafolder for datafolder in ['nthreads=1', 'nthreads=2', 'nthreads=3', 'nthreads=4', 'nthreads=8']]
+        datafolders = [Path(__file__).parent/datafolder/'fmriprep_sub-*.o*' for datafolder in ['nthreads=1', 'nthreads=2', 'nthreads=3', 'nthreads=4', 'nthreads=8']]
+    else:
+        datafolders = [Path(datafolder)/'*.o*' if '*' not in datafolder else Path(datafolder) for datafolder in args.datafolders]
 
-    main(datadirs=[Path(datafolder) for datafolder in args.datafolders], maxtime_=args.walltime, maxmem_=args.mem, bins=args.bins, summary=args.summary)
+    main(datadirs=datafolders, maxtime_=args.walltime, maxmem_=args.mem, bins=args.bins, summary=args.summary)
