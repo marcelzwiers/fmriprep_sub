@@ -91,8 +91,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.datafolders == ['demo']:
-        datafolders = [Path(__file__).parent/datafolder/'fmriprep_sub-*.o*' for datafolder in ['nthreads=1', 'nthreads=2', 'nthreads=3', 'nthreads=4', 'nthreads=8']]
+        datasets = [Path(__file__).parent / datafolder / 'fmriprep_sub-*.o*' for datafolder in ['nthreads=1', 'nthreads=2', 'nthreads=3', 'nthreads=4', 'nthreads=8']]
     else:
-        datafolders = [Path(datafolder)/'*.o[0-9]*' if ('?' not in datafolder and '*' not in datafolder and '[' not in datafolder) else Path(datafolder) for datafolder in args.datafolders]
+        datasets = [Path(datafolder) / '*.o[0-9]*' if ('?' not in datafolder and '*' not in datafolder and '[' not in datafolder) else Path(datafolder) for datafolder in args.datafolders]
 
-    main(datasets=datafolders, maxtime_=args.walltime, maxmem_=args.mem, bins=args.bins, summary=args.summary)
+    main(datasets=datasets, maxtime_=args.walltime, maxmem_=args.mem, bins=args.bins, summary=args.summary)
