@@ -23,48 +23,48 @@ def medmadmax(data=None, meddata=(), maddata=(), maxdata=()):
     return meddata, maddata, maxdata
 
 
-def main(datadirs: list, maxtime_: float, maxmem_: float, bins: int, summary: bool):
+def main(datasets: list, maxtime_: float, maxmem_: float, bins: int, summary: bool):
 
     # Parse the walltime and memory usage
     medtime, madtime, maxtime = medmadmax()
     medmem,  madmem,  maxmem  = medmadmax()
     time                      = dict()
     mem                       = dict()
-    for datadir in datadirs:
-        print(f'Reading logfiles from: "{datadir}"')
-        time[datadir] = list()
-        mem[datadir]  = list()
-        for logfile in [item for item in datadir.parent.glob(datadir.name) if item.is_file()]:
+    for dataset in datasets:
+        print(f'Reading logfiles from: "{dataset}"')
+        time[dataset] = list()
+        mem[dataset]  = list()
+        for logfile in [item for item in dataset.parent.glob(dataset.name) if item.is_file()]:
             with open(logfile, 'r') as fid_log:
                 try:
                     resources = re.search(r'(Used resources:.*,walltime=.*,mem=.*)\n', fid_log.read())[1].split(',')    # Used resources:	   cput=03:22:23,walltime=01:01:53,mem=17452716032b
                     hhmmss    = resources[1].split('=')[1].split(':')
-                    time[datadir].append(float(hhmmss[0]) + float(hhmmss[1])/60 + float(hhmmss[2])/(60*60))
-                    mem[datadir].append(float(resources[2].split('=')[1][:-1]) / (1024**3))
+                    time[dataset].append(float(hhmmss[0]) + float(hhmmss[1])/60 + float(hhmmss[2])/(60*60))
+                    mem[dataset].append(float(resources[2].split('=')[1][:-1]) / (1024**3))
                 except:
                     print(f"Could not parse: {logfile}")
                     continue
-        medtime, madtime, maxtime = medmadmax(time[datadir], medtime, madtime, maxtime)
-        medmem,  madmem,  maxmem  = medmadmax(mem[datadir],  medmem,  madmem,  maxmem)
+        medtime, madtime, maxtime = medmadmax(time[dataset], medtime, madtime, maxtime)
+        medmem,  madmem,  maxmem  = medmadmax(mem[dataset],  medmem,  madmem,  maxmem)
     if all(not time for time in medtime):
         print('Could not find or parse any logfile')
         return
 
-    # Plot the data
-    fig, axs = plt.subplots(len(datadirs) + summary, 2, sharex='col', num='HPC resource usage')
-    if len(datadirs)==1 and not summary:
+    # Plot the datasets
+    fig, axs = plt.subplots(len(datasets) + summary, 2, sharex='col', num='HPC resource usage')
+    if len(datasets)==1 and not summary:
         axs = axs.reshape(1, 2)
-    for n, datadir in enumerate(datadirs):
-        axs[n,0].hist(time[datadir], bins=bins, range=(0, min(maxtime_, max(maxtime))))
-        axs[n,1].hist( mem[datadir], bins=bins, range=(0, min(maxmem_,max(maxmem))))
-        axs[n,1].text(0.98, 0.94, f"N={len(time[datadir])}", horizontalalignment='right', verticalalignment='top', transform=axs[n,1].transAxes)
-        axs[n,0].set_ylabel(datadir.parent.name)
+    for n, dataset in enumerate(datasets):
+        axs[n,0].hist(time[dataset], bins=bins, range=(0, min(maxtime_, max(maxtime))))
+        axs[n,1].hist( mem[dataset], bins=bins, range=(0, min(maxmem_,max(maxmem))))
+        axs[n,1].text(0.98, 0.94, f"N={len(time[dataset])}", horizontalalignment='right', verticalalignment='top', transform=axs[n,1].transAxes)
+        axs[n,0].set_ylabel(dataset.parent.name)
     axs[-1,0].set_xlabel('Walltime (hour)')
     axs[-1,1].set_xlabel('Memory (Gb)')
     for ax in fig.get_axes():
         ax.tick_params(axis='y', left=False, which='both', labelleft=False)
 
-    # Plot the summary data
+    # Plot the summary
     if summary:
         axs[-1,0].errorbar(medtime, range(len(medtime),0,-1), xerr=[madtime, [a-b for a,b in zip(maxtime,medtime)]], fmt='o')
         axs[-1,1].errorbar(medmem,  range(len(medmem), 0,-1), xerr=[madmem,  [a-b for a,b in zip(maxmem, medmem)]],  fmt='o')
@@ -95,4 +95,4 @@ if __name__ == '__main__':
     else:
         datafolders = [Path(datafolder)/'*.o[0-9]*' if ('?' not in datafolder and '*' not in datafolder and '[' not in datafolder) else Path(datafolder) for datafolder in args.datafolders]
 
-    main(datadirs=datafolders, maxtime_=args.walltime, maxmem_=args.mem, bins=args.bins, summary=args.summary)
+    main(datasets=datafolders, maxtime_=args.walltime, maxmem_=args.mem, bins=args.bins, summary=args.summary)
