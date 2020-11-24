@@ -87,7 +87,7 @@ if __name__ == '__main__':
     parser.add_argument('-m','--mem',      help='Maximum amount of used memory (in Gb) that is shown in the plots', type=float, default=float('Inf'))
     parser.add_argument('-b','--bins',     help='Number of bins that are shown in the plots', type=int, default=75)
     parser.add_argument('-s','--summary',  help='Show a median summary plot in the final row (left-error = median-absolute-deviation (MAD), right-error = maximum)', action='store_true')
-    parser.add_argument('datafolders',     help='Space separated list of folders containing PBS-logfiles. You can append glob-style wildcards for selecting logfiles, otherwise "*.o*" is appended automatically. It is assumed that the logfiles contain a line similar to "Used resources:	   cput=03:22:23,walltime=01:01:53,mem=17452716032b". Each folder is plotted as a separate row (indicated by the foldername). Try "demo" for plotting fmriprep demo data', nargs='*', default='.')
+    parser.add_argument('datafolders',     help='Space separated list of folders containing PBS-logfiles. You can append glob-style wildcards for the filenames, otherwise "/*.o*" is appended automatically. It is assumed that the logfiles contain a line similar to "Used resources:	   cput=03:22:23,walltime=01:01:53,mem=17452716032b". Each folder is plotted as a separate row (indicated by the foldername). Try "demo" for plotting fmriprep demo data', nargs='*', default='.')
     args = parser.parse_args()
 
     if args.datafolders == ['demo']:
