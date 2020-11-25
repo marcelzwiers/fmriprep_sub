@@ -53,11 +53,11 @@ The PBS logfiles of the ``fmriprep_sub.py`` command as shown above with 1, 2, 3,
 .. code-block:: console
 
    $ hpc_resource_usage.py -s demo
-   Reading logfiles from: "/opt/fmriprep/dccn/nthreads=1"
-   Reading logfiles from: "/opt/fmriprep/dccn/nthreads=2"
-   Reading logfiles from: "/opt/fmriprep/dccn/nthreads=3"
-   Reading logfiles from: "/opt/fmriprep/dccn/nthreads=4"
-   Reading logfiles from: "/opt/fmriprep/dccn/nthreads=8"
+   Reading logfiles from: "/opt/fmriprep/dccn/nthreads=1/fmriprep_sub-*.o*"
+   Reading logfiles from: "/opt/fmriprep/dccn/nthreads=2/fmriprep_sub-*.o*"
+   Reading logfiles from: "/opt/fmriprep/dccn/nthreads=3/fmriprep_sub-*.o*"
+   Reading logfiles from: "/opt/fmriprep/dccn/nthreads=4/fmriprep_sub-*.o*"
+   Reading logfiles from: "/opt/fmriprep/dccn/nthreads=8/fmriprep_sub-*.o*"
 
 .. image:: ./hpc_resource_usage.png
    :alt: HPC resource usage histograms
