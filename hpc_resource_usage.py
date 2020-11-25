@@ -81,7 +81,7 @@ def main(datasets: list, maxtime_: float, maxmem_: float, bins: int, summary: bo
 
 if __name__ == '__main__':
 
-    # Parse the input arguments and run hpc_resource_usage(args)
+    # Parse the input arguments and run main(args)
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter, description=__doc__)
     parser.add_argument('-w','--walltime', help='Maximum amount of used walltime (in hour) that is shown in the plots', type=float, default=float('Inf'))
     parser.add_argument('-m','--mem',      help='Maximum amount of used memory (in Gb) that is shown in the plots', type=float, default=float('Inf'))
