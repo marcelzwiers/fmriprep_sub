@@ -1,0 +1,7 @@
+/usr/share/Modules/init/bash: line 2: unalias: matlab-torque: not found
+/usr/share/Modules/init/bash: line 2: unalias: matlab-noX11tunnel: not found
+/usr/local/miniconda/lib/python3.7/site-packages/bids/layout/validation.py:46: UserWarning: The ability to pass arguments to BIDSLayout that control indexing is likely to be removed in future; possibly as early as PyBIDS 0.14. This includes the `config_filename`, `ignore`, `force_index`, and `index_metadata` arguments. The recommended usage pattern is to initialize a new BIDSLayoutIndexer with these arguments, and pass it to the BIDSLayout via the `indexer` argument.
+  warnings.warn("The ability to pass arguments to BIDSLayout that control "
+pandoc: Prelude.last: empty list
+Could not generate CITATION.tex file:
+pandoc -s --bibliography /usr/local/miniconda/lib/python3.7/site-packages/fmriprep/data/boilerplate.bib --natbib /home/mrphys/marzwi/pom/tmp/marcel/bids1/derivatives/fmriprep/logs/CITATION.md -o /home/mrphys/marzwi/pom/tmp/marcel/bids1/derivatives/fmriprep/logs/CITATION.tex
