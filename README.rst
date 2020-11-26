@@ -64,5 +64,5 @@ The PBS logfiles of the ``fmriprep_sub.py`` command as shown above with 1, 2, 3,
 
 Conclusions on fmriprep v20.2.1 multi-threading:
  - The speed increase is not very significant when increasing the number of compute threads above 3
- - The majority of jobs require a comparable walltime, but some jobs take much longer. NB: the spread of the distributions is increased by the heterogeneity of the DCCN compute cluster and occasional inconsistencies (repeats) in the data acquisition in certain (heavily moving) participants
- - The memory usage is comparable and largely independen of the number of threads, but distinct higher peaks in the distribution appear with an increasing number of threads
+ - The majority of jobs of the same batch require a comparable walltime, but a few jobs take much longer. NB: The spread of the distributions is increased by the heterogeneity of the DCCN compute cluster and occasional inconsistencies (repeats) in the data acquisition in certain (heavily moving) participants
+ - The memory usage of the majority of all jobs is comparable and largely independen of the number of threads, but distinct higher peaks in the distribution appear with an increasing number of threads
