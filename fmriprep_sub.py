@@ -27,7 +27,7 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
         sub_dirs = [bidsdir/('sub-' + label.replace('sub-','')) for label in subject_label]
 
     # Loop over the bids sub-directories and submit a job for every (new) subject
-    for n, sub_dir in enumerate(sub_dirs,1):
+    for n, sub_dir in enumerate(sub_dirs, 1):
 
         if not sub_dir.is_dir():
             print(f">>> Directory does not exist: {sub_dir}")
@@ -64,8 +64,10 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
             # Submit the job to the compute cluster
             command = """qsub -l nodes=1:ppn={nthreads},walltime={walltime}:00:00,mem={mem_mb}mb{file_gb} -N fmriprep_sub-{sub_id} {qargs} <<EOF
                          cd {pwd}
+                         {sleep}
                          {fmriprep} {bidsdir} {outputdir} participant -w {workdir} --participant-label {sub_id} --skip-bids-validation --fs-license-file {licensefile} --mem_mb {mem_mb} --omp-nthreads {nthreads} --nthreads {nthreads} {args}\nEOF"""\
                          .format(pwd         = Path.cwd(),
+                                 sleep       = 'sleep 1m' if n > 1 else '',     # Avoid concurrency issues, see: https://neurostars.org/t/updated-fmriprep-workaround-for-running-subjects-in-parallel/6677
                                  fmriprep    = f'unset PYTHONPATH; export PYTHONNOUSERSITE=1; singularity run --cleanenv {os.getenv("DCCN_OPT_DIR")}/fmriprep/{os.getenv("FMRIPREP_VERSION")}/fmriprep-{os.getenv("FMRIPREP_VERSION")}.simg',
                                  bidsdir     = bidsdir,
                                  outputdir   = outputdir,
