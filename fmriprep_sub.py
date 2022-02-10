@@ -12,11 +12,11 @@ from pathlib import Path
 
 def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=False, mem_mb=20000, walltime=48, file_gb_=50, nthreads=None, argstr='', qargstr='', dryrun=False, skip=True):
 
-    # Default
+    # Defaults
     bidsdir   = Path(bidsdir)
     outputdir = Path(outputdir)
     if not outputdir.name:
-        outputdir = bidsdir/'derivatives'
+        outputdir = bidsdir/'derivatives'/'fmriprep'
     if not nthreads:                                        # Set the number of threads between 1 and 8 (but see https://github.com/nipreps/fmriprep/pull/2071)
         nthreads = min(8, max(1, round(mem_mb / 10000)))    # Allocating ~10GB / CPU core
 
@@ -36,7 +36,7 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
         # Identify what data sessions we have
         sub_id       = [part for part in sub_dir.parts if part.startswith('sub-')][0]
         ses_dirs_in  = [ses_dir.name for ses_dir in sub_dir.glob('ses-*')]
-        ses_dirs_out = [ses_dir.name for ses_dir in (outputdir/'fmriprep'/sub_id).glob('ses-*')]
+        ses_dirs_out = [ses_dir.name for ses_dir in (outputdir/sub_id).glob('ses-*')]
 
         # Define a (clean) subject specific work directory and allocate space there
         if not workdir_:
@@ -47,7 +47,7 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
             file_gb = ''                                                 # We don't need to allocate local scratch space
 
         # A subject is considered already done if there is a html-report and all sessions have been processed
-        report = outputdir/'fmriprep'/(sub_id + '.html')
+        report = outputdir/(sub_id + '.html')
         if len(ses_dirs_in) == len(ses_dirs_out):
             sessions = [ses_dir_in in ses_dirs_out for ses_dir_in in ses_dirs_in]
         else:
@@ -62,15 +62,16 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
                     report.unlink()
 
             # Submit the job to the compute cluster
+            version = os.getenv("FMRIPREP_VERSION")
             command = """qsub -l nodes=1:ppn={nthreads},walltime={walltime}:00:00,mem={mem_mb}mb{file_gb} -N fmriprep_sub-{sub_id} {qargs} <<EOF
                          cd {pwd}
                          {sleep}
                          {fmriprep} {bidsdir} {outputdir} participant -w {workdir} --participant-label {sub_id} --skip-bids-validation --fs-license-file {licensefile} --mem_mb {mem_mb} --omp-nthreads {nthreads} --nthreads {nthreads} {args}\nEOF"""\
                          .format(pwd         = Path.cwd(),
                                  sleep       = 'sleep 1m' if n > 1 else '',     # Avoid concurrency issues, see: https://neurostars.org/t/updated-fmriprep-workaround-for-running-subjects-in-parallel/6677
-                                 fmriprep    = f'unset PYTHONPATH; export PYTHONNOUSERSITE=1; singularity run --cleanenv {os.getenv("DCCN_OPT_DIR")}/fmriprep/{os.getenv("FMRIPREP_VERSION")}/fmriprep-{os.getenv("FMRIPREP_VERSION")}.simg',
+                                 fmriprep    = f'unset PYTHONPATH; export PYTHONNOUSERSITE=1; singularity run --cleanenv {os.getenv("DCCN_OPT_DIR")}/fmriprep/{version}/fmriprep-{version}.simg',
                                  bidsdir     = bidsdir,
-                                 outputdir   = outputdir,
+                                 outputdir   = outputdir.parent if int(version.split('.')[0]) < 21 else outputdir,      # Use legacy or bids output-layout (https://fmriprep.org/en/latest/outputs.html#layout)
                                  workdir     = workdir,
                                  sub_id      = sub_id[4:],
                                  licensefile = os.getenv('FS_LICENSE'),
@@ -128,7 +129,7 @@ if __name__ == "__main__":
                                             'author:\n'
                                             '  Marcel Zwiers\n ')
     parser.add_argument('bidsdir',                  help='The bids-directory with the (new) subject data')
-    parser.add_argument('-o','--outputdir',         help='The output-directory where the frmiprep output is stored (default = bidsdir/derivatives)', default='')
+    parser.add_argument('-o','--outputdir',         help='The output-directory where the frmiprep output is stored (default = bidsdir/derivatives/fmriprep)', default='')
     parser.add_argument('-w','--workdir',           help='The working-directory where intermediate files are stored (default = temporary directory', default='')
     parser.add_argument('-p','--participant_label', help='Space seperated list of sub-# identifiers to be processed (the sub- prefix can be removed). Otherwise all sub-folders in the bidsfolder will be processed', nargs='+')
     parser.add_argument('-f','--force',             help='If this flag is given subjects will be processed, regardless of existing folders in the bidsfolder. Otherwise existing folders will be skipped', action='store_true')
