@@ -87,9 +87,9 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
             else:
                 print(f">>> Submitting job ({n}/{len(sub_dirs)}):\n{command}")
                 if not dryrun:
-                    proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-                    if proc.returncode != 0:
-                        print(f"WARNING: Job submission failed with error-code {proc.returncode}\n")
+                    process = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+                    if process.returncode != 0:
+                        print(f"ERROR {process.returncode}: Job submission failed\n{process.stderr.decode('utf-8')}\n{process.stdout.decode('utf-8')}")
 
         else:
             print(f">>> Nothing to do for job ({n}/{len(sub_dirs)}): {sub_dir} (--> {report})")
