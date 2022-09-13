@@ -7,6 +7,7 @@ then runs them (as single-participant fmriprep jobs) on the compute cluster.
 
 import os
 import shutil
+import tempfile
 import subprocess
 from pathlib import Path
 
@@ -40,7 +41,7 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
 
         # Define a (clean) subject specific work directory and allocate space there
         if not workdir_:
-            workdir = Path('\$TMPDIR')
+            workdir = Path(tempfile.mkdtemp())
             file_gb = f",file={file_gb_}gb"
         else:
             workdir = Path(workdir_)/sub_id
@@ -130,7 +131,7 @@ if __name__ == "__main__":
                                             '  Marcel Zwiers\n ')
     parser.add_argument('bidsdir',                  help='The bids-directory with the (new) subject data')
     parser.add_argument('-o','--outputdir',         help='The output-directory where the frmiprep output is stored (default = bidsdir/derivatives/fmriprep)', default='')
-    parser.add_argument('-w','--workdir',           help='The working-directory where intermediate files are stored (default = temporary directory', default='')
+    parser.add_argument('-w','--workdir',           help='The working-directory where intermediate files are stored (default = a temporary directory', default='')
     parser.add_argument('-p','--participant_label', help='Space seperated list of sub-# identifiers to be processed (the sub- prefix can be removed). Otherwise all sub-folders in the bidsfolder will be processed', nargs='+')
     parser.add_argument('-f','--force',             help='If this flag is given subjects will be processed, regardless of existing folders in the bidsfolder. Otherwise existing folders will be skipped', action='store_true')
     parser.add_argument('-i','--ignore',            help='If this flag is given then already running or scheduled jobs with the same name are ignored, otherwise job submission is skipped', action='store_false')
