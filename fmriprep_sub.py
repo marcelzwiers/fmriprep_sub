@@ -7,7 +7,6 @@ then runs them (as single-participant fmriprep jobs) on the compute cluster.
 
 import os
 import shutil
-import tempfile
 import subprocess
 from pathlib import Path
 
@@ -41,7 +40,7 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
 
         # Define a (clean) subject specific work directory and allocate space there
         if not workdir_:
-            workdir = Path(tempfile.mkdtemp())
+            workdir = Path('\$TMPDIR')
             file_gb = f",file={file_gb_}gb"
         else:
             workdir = Path(workdir_)/sub_id
@@ -90,7 +89,7 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
                 if not dryrun:
                     process = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
                     if process.returncode != 0:
-                        print(f"ERROR {process.returncode}: Job submission failed\n{process.stderr.decode('utf-8')}\n{process.stdout.decode('utf-8')}")
+                        print(f"ERROR {process.returncode}: Job submission failed\n{process.stderr.decode()}\n{process.stdout.decode()}")
 
         else:
             print(f">>> Nothing to do for job ({n}/{len(sub_dirs)}): {sub_dir} (--> {report})")
