@@ -40,7 +40,7 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
 
         # Define a (clean) subject specific work directory and allocate space there
         if not workdir_:
-            workdir = Path('\$TMPDIR')
+            workdir = Path('\$TMPDIR')/sub_id
             file_gb = f",file={file_gb_}gb"
         else:
             workdir = Path(workdir_)/sub_id
