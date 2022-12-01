@@ -64,6 +64,7 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
             # Submit the job to the compute cluster
             version = os.getenv("FMRIPREP_VERSION")
             command = """qsub -l nodes=1:ppn={nthreads},walltime={walltime}:00:00,mem={mem_mb}mb{file_gb} -N fmriprep_sub-{sub_id} {qargs} <<EOF
+                         echo using: TMPDIR=\$TMPDIR
                          cd {pwd}
                          {sleep}
                          {fmriprep} {bidsdir} {outputdir} participant -w {workdir} --participant-label {sub_id} {validation} --fs-license-file {licensefile} --mem_mb {mem_mb} --omp-nthreads {nthreads} --nthreads {nthreads} {args}\nEOF"""\
