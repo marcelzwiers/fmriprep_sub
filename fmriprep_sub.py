@@ -10,7 +10,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=False, mem_mb=20000, walltime=48, file_gb_=50, nthreads=None, argstr='', qargstr='', dryrun=False, skip=True):
+def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=False, mem_mb=20000, walltime=72, file_gb_=50, nthreads=None, argstr='', qargstr='', dryrun=False, skip=True):
 
     # Defaults
     bidsdir   = Path(bidsdir)
@@ -70,7 +70,7 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
                          {fmriprep} {bidsdir} {outputdir} participant -w {workdir} --participant-label {sub_id} {validation} --fs-license-file {licensefile} --mem_mb {mem_mb} --omp-nthreads {nthreads} --nthreads {nthreads} {args}\nEOF"""\
                          .format(pwd         = Path.cwd(),
                                  sleep       = 'sleep 1m' if n > 1 else '',     # Avoid concurrency issues, see: https://neurostars.org/t/updated-fmriprep-workaround-for-running-subjects-in-parallel/6677
-                                 fmriprep    = f'unset PYTHONPATH; export PYTHONNOUSERSITE=1; singularity run --cleanenv --bind \$TMPDIR:/tmp {os.getenv("DCCN_OPT_DIR")}/fmriprep/{version}/fmriprep-{version}.simg',
+                                 fmriprep    = f'unset PYTHONPATH; export APPTAINERENV_PYTHONNOUSERSITE=1; apptainer run --cleanenv --bind \$TMPDIR:/tmp {os.getenv("DCCN_OPT_DIR")}/fmriprep/{version}/fmriprep-{version}.simg',
                                  bidsdir     = bidsdir,
                                  outputdir   = outputdir.parent if int(version.split('.')[0]) < 21 else outputdir,      # Use legacy or bids output-layout (https://fmriprep.org/en/latest/outputs.html#layout)
                                  workdir     = workdir,
@@ -138,7 +138,7 @@ if __name__ == "__main__":
     parser.add_argument('-i','--ignore',            help='If this flag is given then already running or scheduled jobs with the same name are ignored, otherwise job submission is skipped', action='store_false')
     parser.add_argument('-m','--mem_mb',            help='Required amount of memory (in mb)', default=20000, type=int)
     parser.add_argument('-n','--nthreads',          help='Number of compute threads (CPU cores) per job (subject). By default ~10GB/CPU core is allocated, i.e. nthreads = round(mem_mb/10000), but you can increase it to speed up the processing of small datasets (< ~25 subjects), see https://fmriprep.org/en/stable/faq.html#running-subjects-in-parallel', choices=range(1,9), type=int)
-    parser.add_argument('-t','--time',              help='Required walltime (in hours)', default=48, type=int)
+    parser.add_argument('-t','--time',              help='Required walltime (in hours)', default=72, type=int)
     parser.add_argument('-s','--scratch_gb',        help='Required free diskspace of the local temporary workdir (in gb)', default=50, type=int)
     parser.add_argument('-a','--args',              help='Additional arguments that are passed to fmriprep (NB: Use quotes and a leading space to prevent unintended argument parsing)', type=str, default='')
     parser.add_argument('-q','--qargs',             help='Additional arguments that are passed to qsub (NB: Use quotes and a leading space to prevent unintended argument parsing)', type=str, default='')
