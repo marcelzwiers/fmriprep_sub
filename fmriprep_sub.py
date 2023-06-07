@@ -70,7 +70,7 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
                          {fmriprep} {bidsdir} {outputdir} participant -w {workdir} --participant-label {sub_id} {validation} --fs-license-file {licensefile} --mem_mb {mem_mb} --omp-nthreads {nthreads} --nthreads {nthreads} {args}\nEOF"""\
                          .format(pwd         = Path.cwd(),
                                  sleep       = 'sleep 1m' if n > 1 else '',     # Avoid concurrency issues, see: https://neurostars.org/t/updated-fmriprep-workaround-for-running-subjects-in-parallel/6677
-                                 fmriprep    = f'unset PYTHONPATH; export APPTAINERENV_PYTHONNOUSERSITE=1; apptainer run --cleanenv --bind \$TMPDIR:/tmp {os.getenv("DCCN_OPT_DIR")}/fmriprep/{version}/fmriprep-{version}.simg',
+                                 fmriprep    = f'apptainer run --cleanenv --bind \$TMPDIR:/tmp {os.getenv("DCCN_OPT_DIR")}/fmriprep/{version}/fmriprep-{version}.simg',
                                  bidsdir     = bidsdir,
                                  outputdir   = outputdir.parent if int(version.split('.')[0]) < 21 else outputdir,      # Use legacy or bids output-layout (https://fmriprep.org/en/latest/outputs.html#layout)
                                  workdir     = workdir,
