@@ -10,6 +10,9 @@ import shutil
 import subprocess
 from pathlib import Path
 
+version = os.getenv("FMRIPREP_VERSION")
+
+
 def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=False, mem_mb=20000, walltime=72, file_gb_=50, nthreads=None, argstr='', qargstr='', dryrun=False, skip=True):
 
     # Defaults
@@ -62,7 +65,6 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
                     report.unlink()
 
             # Submit the job to the compute cluster
-            version = os.getenv("FMRIPREP_VERSION")
             command = """qsub -l nodes=1:ppn={nthreads},walltime={walltime}:00:00,mem={mem_mb}mb{file_gb} -N fmriprep_sub-{sub_id} {qargs} <<EOF
                          echo using: TMPDIR=\$TMPDIR
                          cd {pwd}
@@ -131,7 +133,7 @@ if __name__ == "__main__":
                                             'author:\n'
                                             '  Marcel Zwiers\n ')
     parser.add_argument('bidsdir',                  help='The bids-directory with the (new) subject data')
-    parser.add_argument('-o','--outputdir',         help='The output-directory where the frmiprep output is stored (default = bidsdir/derivatives/fmriprep)', default='')
+    parser.add_argument('-o','--outputdir',         help='The output-directory where the frmiprep output is stored. NB: for fmriprep versions before 21.0.0 the last part of outputdir MUST be named "fmriprep" (e.g. "data/v20.0.0/fmriprep") (default = bidsdir/derivatives/fmriprep)', default='')
     parser.add_argument('-w','--workdir',           help='The working-directory where intermediate files are stored (default = a temporary directory', default='')
     parser.add_argument('-p','--participant_label', help='Space seperated list of sub-# identifiers to be processed (the sub- prefix can be removed). Otherwise all sub-folders in the bidsfolder will be processed', nargs='+')
     parser.add_argument('-f','--force',             help='If this flag is given subjects will be processed, regardless of existing folders in the bidsfolder. Otherwise existing folders will be skipped', action='store_true')
@@ -145,16 +147,21 @@ if __name__ == "__main__":
     parser.add_argument('-d','--dryrun',            help='Add this flag to just print the fmriprep qsub commands without actually submitting them (useful for debugging)', action='store_true')
     args = parser.parse_args()
 
-    main(bidsdir       = args.bidsdir,
-         outputdir     = args.outputdir,
-         workdir_      = args.workdir,
-         subject_label = args.participant_label,
-         force         = args.force,
-         mem_mb        = args.mem_mb,
-         walltime      = args.time,
-         nthreads      = args.nthreads,
-         file_gb_      = args.scratch_gb,
-         argstr        = args.args,
-         qargstr       = args.qargs,
-         dryrun        = args.dryrun,
-         skip          = args.ignore)
+    # Catch old fmriprep outputdir behaviour
+    if int(version.split('.')[0]) < 21 and Path(args.outputdir).name != 'fmriprep':
+        print(f"For fmriprep versions before 21.0.0 the last part of outputdir MUST be named 'fmriprep'\n(e.g. '{Path(args.outputdir).parent}/fmriprep' instead of '{args.outputdir}')")
+
+    else:
+        main(bidsdir       = args.bidsdir,
+             outputdir     = args.outputdir,
+             workdir_      = args.workdir,
+             subject_label = args.participant_label,
+             force         = args.force,
+             mem_mb        = args.mem_mb,
+             walltime      = args.time,
+             nthreads      = args.nthreads,
+             file_gb_      = args.scratch_gb,
+             argstr        = args.args,
+             qargstr       = args.qargs,
+             dryrun        = args.dryrun,
+             skip          = args.ignore)
