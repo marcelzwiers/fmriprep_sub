@@ -148,7 +148,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Catch old fmriprep outputdir behaviour
-    if int(version.split('.')[0]) < 21 and Path(args.outputdir).name != 'fmriprep':
+    if int(version.split('.')[0]) < 21 and args.outputdir and Path(args.outputdir).name != 'fmriprep':
         print(f"For fmriprep versions before 21.0.0 the last part of outputdir MUST be named 'fmriprep'\n(e.g. '{Path(args.outputdir).parent}/fmriprep' instead of '{args.outputdir}')")
 
     else:
