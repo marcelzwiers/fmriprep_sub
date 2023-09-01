@@ -8,12 +8,14 @@ then runs them (as single-participant fmriprep jobs) on the compute cluster.
 import os
 import shutil
 import subprocess
+import argparse
+import textwrap
 from pathlib import Path
 
 version = os.getenv("FMRIPREP_VERSION")
 
 
-def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=False, mem_mb=20000, walltime=72, file_gb_=50, nthreads=None, argstr='', qargstr='', dryrun=False, skip=True):
+def main(bidsdir: str, outputdir: str, workroot: str, subject_label=(), force=False, manager='torque', mem_mb=20000, walltime=72, file_gb_=50, nthreads=None, argstr='', qargstr='', dryrun=False, skip=True):
 
     # Defaults
     bidsdir   = Path(bidsdir)
@@ -23,13 +25,13 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
     if not nthreads:                                        # Set the number of threads between 1 and 8 (but see https://github.com/nipreps/fmriprep/pull/2071)
         nthreads = min(8, max(1, round(mem_mb / 10000)))    # Allocating ~10GB / CPU core
 
-    # Map the bids sub-directories
+    # Map the bids subdirectories
     if not subject_label:
         sub_dirs = list(bidsdir.glob('sub-*'))
     else:
         sub_dirs = [bidsdir/('sub-' + label.replace('sub-','')) for label in subject_label]
 
-    # Loop over the bids sub-directories and submit a job for every (new) subject
+    # Loop over the bids subdirectories and submit a job for every (new) subject
     for n, sub_dir in enumerate(sub_dirs, 1):
 
         if not sub_dir.is_dir():
@@ -42,12 +44,15 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
         ses_dirs_out = [ses_dir.name for ses_dir in (outputdir/sub_id).glob('ses-*')]
 
         # Define a (clean) subject specific work directory and allocate space there
-        if not workdir_:
+        file_gb = ''                # By default, we don't need to allocate local scratch space
+        if not workroot:
             workdir = Path('\$TMPDIR')/sub_id
-            file_gb = f",file={file_gb_}gb"
+            if manager == 'torque':
+                file_gb = f",file={file_gb_}gb"
+            elif manager == 'slurm':
+                file_gb = f"--tmp={file_gb_}G"
         else:
-            workdir = Path(workdir_)/sub_id
-            file_gb = ''                                                 # We don't need to allocate local scratch space
+            workdir = Path(workroot)/sub_id
 
         # A subject is considered already done if there is a html-report and all sessions have been processed
         report = outputdir/(sub_id + '.html')
@@ -64,36 +69,48 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
                 if report.is_file():
                     report.unlink()
 
+            # Generate the submit-command
+            if manager == 'torque':
+                submit  = f"qsub -l nodes=1:ppn={nthreads},walltime={walltime}:00:00,mem={mem_mb}mb{file_gb} -N fmriprep_{sub_id} {qargstr}"
+                running = subprocess.run('if [ ! -z "$(qselect -s RQH)" ]; then qstat -f $(qselect -s RQH) | grep Job_Name | grep fmriprep_sub; fi', shell=True, capture_output=True, text=True)
+            elif manager == 'slurm':
+                submit  = f"sbatch --job-name=fmriprep_{sub_id} --mem={mem_mb} --time={walltime}:00:00 --nodes={nthreads} {file_gb} {qargstr}"
+                running = subprocess.run('squeue -h -o format=%j | grep fmriprep_sub', shell=True, capture_output=True, text=True)
+            else:
+                print(f"ERROR: Invalid resource manager `{manager}`")
+                exit(1)
+
+            # Generate the fmriprep-command
+            job = """\
+                #!/bin/bash
+                {sleep}
+                ulimit -s unlimited
+                echo using: TMPDIR=\$TMPDIR
+                cd {pwd}
+                {fmriprep} {bidsdir} {outputdir} participant -w {workdir} --participant-label {sub_id} {validation} --fs-license-file {licensefile} --mem_mb {mem_mb} --omp-nthreads {nthreads} --nthreads {nthreads} {args}"""\
+                .format(pwd         = Path.cwd(),
+                        sleep       = 'sleep 1m' if n>1 else '',                                            # Avoid concurrency issues, see: https://neurostars.org/t/updated-fmriprep-workaround-for-running-subjects-in-parallel/6677
+                        fmriprep    = f'apptainer run --cleanenv --bind \$TMPDIR:/tmp {os.getenv("DCCN_OPT_DIR")}/fmriprep/{version}/fmriprep-{version}.simg',
+                        bidsdir     = bidsdir,
+                        outputdir   = outputdir.parent if int(version.split('.')[0])<21 else outputdir,     # Use legacy or bids output-layout (https://fmriprep.org/en/latest/outputs.html#layout)
+                        workdir     = workdir,
+                        sub_id      = sub_id[4:],
+                        validation  = '--skip-bids-validation' if n>1 else '',
+                        licensefile = os.getenv('FS_LICENSE'),
+                        nthreads    = nthreads,
+                        mem_mb      = mem_mb,
+                        args        = argstr)
+
             # Submit the job to the compute cluster
-            command = """qsub -l nodes=1:ppn={nthreads},walltime={walltime}:00:00,mem={mem_mb}mb{file_gb} -N fmriprep_sub-{sub_id} {qargs} <<EOF
-                         echo using: TMPDIR=\$TMPDIR
-                         cd {pwd}
-                         {sleep}
-                         {fmriprep} {bidsdir} {outputdir} participant -w {workdir} --participant-label {sub_id} {validation} --fs-license-file {licensefile} --mem_mb {mem_mb} --omp-nthreads {nthreads} --nthreads {nthreads} {args}\nEOF"""\
-                         .format(pwd         = Path.cwd(),
-                                 sleep       = 'sleep 1m' if n > 1 else '',     # Avoid concurrency issues, see: https://neurostars.org/t/updated-fmriprep-workaround-for-running-subjects-in-parallel/6677
-                                 fmriprep    = f'apptainer run --cleanenv --bind \$TMPDIR:/tmp {os.getenv("DCCN_OPT_DIR")}/fmriprep/{version}/fmriprep-{version}.simg',
-                                 bidsdir     = bidsdir,
-                                 outputdir   = outputdir.parent if int(version.split('.')[0]) < 21 else outputdir,      # Use legacy or bids output-layout (https://fmriprep.org/en/latest/outputs.html#layout)
-                                 workdir     = workdir,
-                                 sub_id      = sub_id[4:],
-                                 validation  = '--skip-bids-validation' if n > 1 else '',
-                                 licensefile = os.getenv('FS_LICENSE'),
-                                 nthreads    = nthreads,
-                                 mem_mb      = mem_mb,
-                                 walltime    = walltime,
-                                 file_gb     = file_gb,
-                                 args        = argstr,
-                                 qargs       = qargstr)
-            running = subprocess.run('if [ ! -z "$(qselect -s RQH)" ]; then qstat -f $(qselect -s RQH) | grep Job_Name | grep fmriprep_; fi', stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-            if skip and f'fmriprep_{sub_id}' in running.stdout.decode():
+            command = f"{submit} <<EOF\n{textwrap.dedent(job)}\nEOF\n"
+            if skip and f'fmriprep_{sub_id}' in running.stdout:
                 print(f">>> Skipping already running / scheduled job ({n}/{len(sub_dirs)}): fmriprep_{sub_id}")
             else:
                 print(f">>> Submitting job ({n}/{len(sub_dirs)}):\n{command}")
                 if not dryrun:
-                    process = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+                    process = subprocess.run(command, shell=True, capture_output=True, text=True)
                     if process.returncode != 0:
-                        print(f"ERROR {process.returncode}: Job submission failed\n{process.stderr.decode()}\n{process.stdout.decode()}")
+                        print(f"ERROR {process.returncode}: Job submission failed\n{process.stderr}\n{process.stdout}")
 
         else:
             print(f">>> Nothing to do for job ({n}/{len(sub_dirs)}): {sub_dir} (--> {report})")
@@ -112,9 +129,6 @@ def main(bidsdir: str, outputdir: str, workdir_: str, subject_label=(), force=Fa
 if __name__ == "__main__":
 
     # Parse the input arguments and run main(args)
-    import argparse
-    import textwrap
-
     class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescriptionHelpFormatter):
         pass
 
@@ -138,6 +152,7 @@ if __name__ == "__main__":
     parser.add_argument('-p','--participant_label', help='Space seperated list of sub-# identifiers to be processed (the sub- prefix can be removed). Otherwise all sub-folders in the bidsfolder will be processed', nargs='+')
     parser.add_argument('-f','--force',             help='If this flag is given subjects will be processed, regardless of existing folders in the bidsfolder. Otherwise existing folders will be skipped', action='store_true')
     parser.add_argument('-i','--ignore',            help='If this flag is given then already running or scheduled jobs with the same name are ignored, otherwise job submission is skipped', action='store_false')
+    parser.add_argument('-r','--resourcemanager',   help='Resource manager to which the jobs are submitted', choices=('torque', 'slurm'), default='torque', const='torque', nargs='?')
     parser.add_argument('-m','--mem_mb',            help='Required amount of memory (in mb)', default=20000, type=int)
     parser.add_argument('-n','--nthreads',          help='Number of compute threads (CPU cores) per job (subject). By default ~10GB/CPU core is allocated, i.e. nthreads = round(mem_mb/10000), but you can increase it to speed up the processing of small datasets (< ~25 subjects), see https://fmriprep.org/en/stable/faq.html#running-subjects-in-parallel', choices=range(1,9), type=int)
     parser.add_argument('-t','--time',              help='Required walltime (in hours)', default=72, type=int)
@@ -154,9 +169,10 @@ if __name__ == "__main__":
     else:
         main(bidsdir       = args.bidsdir,
              outputdir     = args.outputdir,
-             workdir_      = args.workdir,
+             workroot      = args.workdir,
              subject_label = args.participant_label,
              force         = args.force,
+             manager       = args.resourcemanager,
              mem_mb        = args.mem_mb,
              walltime      = args.time,
              nthreads      = args.nthreads,
