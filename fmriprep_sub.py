@@ -74,7 +74,7 @@ def main(bidsdir: str, outputdir: str, workroot: str, subject_label=(), force=Fa
                 submit  = f"qsub -l nodes=1:ppn={nthreads},walltime={walltime}:00:00,mem={mem_mb}mb{file_gb} -N fmriprep_{sub_id} {qargstr}"
                 running = subprocess.run('if [ ! -z "$(qselect -s RQH)" ]; then qstat -f $(qselect -s RQH) | grep Job_Name | grep fmriprep_sub; fi', shell=True, capture_output=True, text=True)
             elif manager == 'slurm':
-                submit  = f"sbatch --job-name=fmriprep_{sub_id} --mem={mem_mb} --time={walltime}:00:00 --nodes={nthreads} {file_gb} {qargstr}"
+                submit  = f"sbatch --job-name=fmriprep_{sub_id} --mem={mem_mb} --time={walltime}:00:00 --ntasks=1 --cpus-per-task={nthreads} {file_gb} {qargstr}"
                 running = subprocess.run('squeue -h -o format=%j | grep fmriprep_sub', shell=True, capture_output=True, text=True)
             else:
                 print(f"ERROR: Invalid resource manager `{manager}`")
@@ -120,8 +120,8 @@ def main(bidsdir: str, outputdir: str, workroot: str, subject_label=(), force=Fa
     elif dryrun:
         print('\n----------------\nDone! NB: The printed jobs were not actually submitted')
     else:
-        print('\n----------------\n' 
-              'Done! Now wait for the jobs to finish... Check that e.g. with this command:\n\n  qstat -a $(qselect -s RQ) | grep fmriprep_sub\n\n'
+        print('\n----------------\n'
+             f"Done! Now wait for the jobs to finish... Check that e.g. with this command:\n\n  {'qstat - a $(qselect -s RQ)' if manager=='torque' else 'squeue'} | grep fmriprep_sub\n\n"
               'You can check how much memory and walltime your jobs have used by running:\n\n  hpc_resource_usage.py\n')
 
 
@@ -158,7 +158,7 @@ if __name__ == "__main__":
     parser.add_argument('-t','--time',              help='Required walltime (in hours)', default=72, type=int)
     parser.add_argument('-s','--scratch_gb',        help='Required free diskspace of the local temporary workdir (in gb)', default=50, type=int)
     parser.add_argument('-a','--args',              help='Additional arguments that are passed to fmriprep (NB: Use quotes and a leading space to prevent unintended argument parsing)', type=str, default='')
-    parser.add_argument('-q','--qargs',             help='Additional arguments that are passed to qsub (NB: Use quotes and a leading space to prevent unintended argument parsing)', type=str, default='')
+    parser.add_argument('-q','--qargs',             help='Additional arguments that are passed to qsub/sbatch (NB: Use quotes and a leading space to prevent unintended argument parsing)', type=str, default='')
     parser.add_argument('-d','--dryrun',            help='Add this flag to just print the fmriprep qsub commands without actually submitting them (useful for debugging)', action='store_true')
     args = parser.parse_args()
 
