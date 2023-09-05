@@ -80,14 +80,14 @@ def main(bidsdir: str, outputdir: str, workroot: str, subject_label=(), force=Fa
                 print(f"ERROR: Invalid resource manager `{manager}`")
                 exit(1)
 
-            # Generate the fmriprep-command
-            job = """\
+            # Generate the fmriprep-job
+            job = textwrap.dedent('''\
                 #!/bin/bash
                 {sleep}
-                ulimit -s unlimited
+                ulimit -v unlimited
                 echo using: TMPDIR=\$TMPDIR
                 cd {pwd}
-                {fmriprep} {bidsdir} {outputdir} participant -w {workdir} --participant-label {sub_id} {validation} --fs-license-file {licensefile} --mem_mb {mem_mb} --omp-nthreads {nthreads} --nthreads {nthreads} {args}"""\
+                {fmriprep} {bidsdir} {outputdir} participant -w {workdir} --participant-label {sub_id} {validation} --fs-license-file {licensefile} --mem_mb {mem_mb} --omp-nthreads {nthreads} --nthreads {nthreads} {args}'''
                 .format(pwd         = Path.cwd(),
                         sleep       = 'sleep 1m' if n>1 else '',                                            # Avoid concurrency issues, see: https://neurostars.org/t/updated-fmriprep-workaround-for-running-subjects-in-parallel/6677
                         fmriprep    = f'apptainer run --cleanenv --bind \$TMPDIR:/tmp {os.getenv("DCCN_OPT_DIR")}/fmriprep/{version}/fmriprep-{version}.simg',
@@ -99,10 +99,10 @@ def main(bidsdir: str, outputdir: str, workroot: str, subject_label=(), force=Fa
                         licensefile = os.getenv('FS_LICENSE'),
                         nthreads    = nthreads,
                         mem_mb      = mem_mb,
-                        args        = argstr)
+                        args        = argstr))
 
             # Submit the job to the compute cluster
-            command = f"{submit} <<EOF\n{textwrap.dedent(job)}\nEOF\n"
+            command = f"{submit} <<EOF\n{job}\nEOF\n"
             if skip and f'fmriprep_{sub_id}' in running.stdout:
                 print(f">>> Skipping already running / scheduled job ({n}/{len(sub_dirs)}): fmriprep_{sub_id}")
             else:
@@ -121,7 +121,7 @@ def main(bidsdir: str, outputdir: str, workroot: str, subject_label=(), force=Fa
         print('\n----------------\nDone! NB: The printed jobs were not actually submitted')
     else:
         print('\n----------------\n'
-             f"Done! Now wait for the jobs to finish... Check that e.g. with this command:\n\n  {'qstat - a $(qselect -s RQ)' if manager=='torque' else 'squeue'} | grep fmriprep_sub\n\n"
+             f"Done! Now wait for the jobs to finish... Check that e.g. with this command:\n\n  {'qstat - a $(qselect -s RQ)' if manager=='torque' else 'squeue -u '+os.getenv('USER')} | grep fmriprep_sub\n\n"
               'You can check how much memory and walltime your jobs have used by running:\n\n  hpc_resource_usage.py\n')
 
 
