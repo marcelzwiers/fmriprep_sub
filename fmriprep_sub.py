@@ -163,8 +163,8 @@ if __name__ == "__main__":
     parser.add_argument('-n','--nthreads',          help='Number of compute threads (CPU cores) per job (subject). By default ~10GB/CPU core is allocated, i.e. nthreads = round(mem_mb/10000), but you can increase it to speed up the processing of small datasets (< ~25 subjects), see https://fmriprep.org/en/stable/faq.html#running-subjects-in-parallel', choices=range(1,9), type=int)
     parser.add_argument('-t','--time',              help='Required walltime (in hours)', default=72, type=int)
     parser.add_argument('-s','--scratch_gb',        help='Required free diskspace of the local temporary workdir (in gb)', default=50, type=int)
-    parser.add_argument('-a','--args',              help='Additional arguments that are passed to fmriprep (NB: Use quotes and a leading space to prevent unintended argument parsing)', type=str, default='')
-    parser.add_argument('-q','--qargs',             help='Additional arguments that are passed to qsub/sbatch (NB: Use quotes and a leading space to prevent unintended argument parsing)', type=str, default='')
+    parser.add_argument('-a','--args',              help='Additional (opaque) arguments that are passed to fmriprep (NB: Use quotes and a leading space to prevent unintended argument parsing)', type=str, default='')
+    parser.add_argument('-q','--qargs',             help='Additional (opaque) arguments that are passed to qsub/sbatch (NB: Use quotes and a leading space to prevent unintended argument parsing)', type=str, default='')
     parser.add_argument('-d','--dryrun',            help='Add this flag to just print the fmriprep qsub commands without actually submitting them (useful for debugging)', action='store_true')
     args = parser.parse_args()
 
