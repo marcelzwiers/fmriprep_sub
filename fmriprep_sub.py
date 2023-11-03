@@ -121,8 +121,10 @@ def main(bidsdir: str, outputdir: str, workroot: str, subject_label=(), force=Fa
         print('\n----------------\nDone! NB: The printed jobs were not actually submitted')
     else:
         print('\n----------------\n'
-             f"Done! Now wait for the jobs to finish... Check that e.g. with this command:\n\n  {'qstat - a $(qselect -s RQ)' if manager=='torque' else 'squeue -u '+os.getenv('USER')} | grep fmriprep_sub\n\n"
-              'You can check how much memory and walltime your jobs have used by running:\n\n  hpc_resource_usage.py\n\n'
+              'Done! Now wait for the jobs to finish... Check that e.g. with this command:\n\n'
+             f"  {'qstat - a $(qselect -s RQ)' if manager=='torque' else 'squeue -u '+os.getenv('USER')} | grep fmriprep_sub\n\n"
+              'You can check how much memory and walltime your jobs have used by running:\n\n'
+              '  hpc_resource_usage.py\n\n'
               "After your jobs have finished you can create a group report using BIDScoin's\n"
               'slicereport tool. For instance, to inspect the mean and std of all your\n'
               'pre-processed fMRI images, load the bidscoin/4.2.2 module (or newer) and run:\n\n'
