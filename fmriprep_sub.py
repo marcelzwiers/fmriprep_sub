@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-The fmriprep_sub.py utility is a wrapper around fmriprep that queries the BIDS directory for new participants and
-then runs them (as single-participant fmriprep jobs) on the compute cluster.
+The fmriprep_sub utility is a wrapper around fmriprep that queries the BIDS directory for new
+participants and then runs them (as single-participant fmriprep jobs) on the compute cluster.
 """
 
 import os
@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import argparse
 import textwrap
+import shlex
 from pathlib import Path
 
 version = os.getenv("FMRIPREP_VERSION")
@@ -76,7 +77,7 @@ def main(bidsdir: str, outputdir: str, workroot: str, subject_label=(), force=Fa
                 running = subprocess.run('if [ ! -z "$(qselect -s RQH)" ]; then qstat -f $(qselect -s RQH) | grep Job_Name | grep fmriprep_sub; fi', shell=True, capture_output=True, text=True)
             elif manager == 'slurm':
                 submit  = f"sbatch --job-name=fmriprep_{sub_id} --mem={mem_mb} --time={walltime}:00:00 --ntasks=1 --cpus-per-task={nthreads} {file_gb} {qargstr}"
-                running = subprocess.run('squeue -h -o format=%j | grep fmriprep_sub', shell=True, capture_output=True, text=True)
+                running = subprocess.run('squeue -u $USER -o format=%j | grep fmriprep_sub', shell=True, capture_output=True, text=True)
             else:
                 print(f"ERROR: Invalid resource manager `{manager}`")
                 exit(1)
@@ -105,7 +106,7 @@ def main(bidsdir: str, outputdir: str, workroot: str, subject_label=(), force=Fa
             # Submit the job to the compute cluster
             command = f"{submit} <<EOF\n{job}\nEOF\n"
             if skip and f'fmriprep_{sub_id}' in running.stdout:
-                print(f">>> Skipping already running / scheduled job ({n}/{len(sub_dirs)}): fmriprep_{sub_id}")
+                print(f">>> Skipping already running/scheduled job ({n}/{len(sub_dirs)}): fmriprep_{sub_id}")
             else:
                 print(f">>> Submitting job ({n}/{len(sub_dirs)}):\n{command}")
                 if not dryrun:
@@ -123,12 +124,10 @@ def main(bidsdir: str, outputdir: str, workroot: str, subject_label=(), force=Fa
     else:
         print('\n----------------\n'
               'Done! Now wait for the jobs to finish... Check that e.g. with this command:\n\n'
-             f"  {'qstat -a $(qselect -s RQ)' if manager=='torque' else 'squeue -u '+os.getenv('USER')} | grep fmriprep_sub\n\n"
-              'You can check how much memory and walltime your jobs have used by running:\n\n'
-              '  hpc_resource_usage.py\n\n'
+             f"  {'qstat -a $(qselect -s RQ)' if manager=='torque' else 'squeue -u '+os.getenv('USER')} -o %j | grep fmriprep_sub\n\n"
               "After your jobs have finished you can create a group report using BIDScoin's\n"
               'slicereport tool. For instance, to inspect the mean and std of all your\n'
-              'pre-processed fMRI images, load the bidscoin/4.2.2 module (or newer) and run:\n\n'
+              'pre-processed fMRI images, load the bidscoin module (4.2.2 or newer) and run:\n\n'
              f"  slicereport {outputdir} func/*desc-preproc_bold* --suboperator Tstd -x {outputdir}\n")
 
 
@@ -140,33 +139,35 @@ if __name__ == "__main__":
         pass
 
     parser = argparse.ArgumentParser(formatter_class=CustomFormatter, description=textwrap.dedent(__doc__),
-                                     epilog='for more information see:\n'
+                                     epilog='Any unrecognized options are forwarded directly to fmriprep\n\n'
+                                            'for more information see:\n'
                                             '  module help fmriprep\n'
                                             '  fmriprep -h\n\n'
                                             'examples:\n'
-                                            '  fmriprep_sub.py /project/3017065.01/bids\n'
-                                            '  fmriprep_sub.py /project/3017065.01/bids -a " --output-space template" (use for v1.2, deprecated in v1.4)\n'
-                                            '  fmriprep_sub.py /project/3017065.01/bids -w /project/3017065.01/fmriprep_work\n'
-                                            '  fmriprep_sub.py /project/3017065.01/bids -o /project/3017065.01/fmriprep --participant_label sub-P010 sub-P018\n'
-                                            '  fmriprep_sub.py /project/3017065.01/bids -a " --fs-no-reconall"\n'
-                                            '  fmriprep_sub.py /project/3017065.01/bids -a "--use-aroma --return-all-components --ignore slicetiming --output-spaces MNI152NLin6Asym"\n'
-                                            '  fmriprep_sub.py -f -m 40000 /project/3017065.01/bids -p P018\n\n'
+                                            '  fmriprep_sub /project/3017065.01/bids\n'
+                                            '  fmriprep_sub /project/3017065.01/bids --output-space template     # (use for v1.2, deprecated in v1.4)\n'
+                                            '  fmriprep_sub /project/3017065.01/bids -w /project/3017065.01/fmriprep_work\n'
+                                            '  fmriprep_sub /project/3017065.01/bids -o /project/3017065.01/fmriprep --participant_label sub-P010 sub-P018\n'
+                                            '  fmriprep_sub /project/3017065.01/bids --fs-no-reconall -q "-N 1 -c 4 --ntasks-per-node=1"\n'
+                                            '  fmriprep_sub /project/3017065.01/bids --ignore slicetiming --output-spaces MNI152NLin6Asym\n'
+                                            '  fmriprep_sub -f -m 40000 /project/3017065.01/bids -p P018\n\n'
                                             'author:\n'
                                             '  Marcel Zwiers\n ')
     parser.add_argument('bidsdir',                  help='The bids-directory with the (new) subject data')
     parser.add_argument('-o','--outputdir',         help='The output-directory where the frmiprep output is stored. NB: for fmriprep versions before 21.0.0 the last part of outputdir MUST be named "fmriprep" (e.g. "derivatives/v20.0.0/fmriprep" instead of "derivatives/v20.0.0") (default = bidsdir/derivatives/fmriprep)', default='')
     parser.add_argument('-w','--workdir',           help='The working-directory where intermediate files are stored (default = a temporary directory', default='')
     parser.add_argument('-p','--participant_label', help='Space seperated list of sub-# identifiers to be processed (the sub- prefix can be removed). Otherwise all sub-folders in the bidsfolder will be processed', nargs='+')
-    parser.add_argument('-f','--force',             help='If this flag is given subjects will be processed, regardless of existing folders in the bidsfolder. Otherwise existing folders will be skipped', action='store_true')
-    parser.add_argument('-i','--ignore',            help='If this flag is given then already running or scheduled jobs with the same name are ignored, otherwise job submission is skipped', action='store_false')
+    parser.add_argument('-c','--clobber',           help='If this flag is given subjects will be processed, regardless of existing output folders in the bidsfolder. Otherwise existing folders will be skipped', action='store_true')
+    parser.add_argument('-r','--resubmit',          help='If this flag is given then jobs will be submitted, irrespective of already running or scheduled jobs with the same name, otherwise job submission is skipped', action='store_false')
     parser.add_argument('-m','--mem_mb',            help='Required amount of memory (in MB)', default=20000, type=int)
     parser.add_argument('-n','--nthreads',          help='Number of compute threads (CPU cores) per job (subject). By default ~10GB/CPU core is allocated, i.e. nthreads = round(mem_mb/10000), but you can increase it to speed up the processing of small datasets (< ~25 subjects), see https://fmriprep.org/en/stable/faq.html#running-subjects-in-parallel', choices=range(1,9), type=int)
     parser.add_argument('-t','--time',              help='Required walltime (in hours)', default=72, type=int)
     parser.add_argument('-s','--scratch_gb',        help='Required free diskspace of the local temporary workdir (in GB)', default=50, type=int)
-    parser.add_argument('-a','--args',              help='Additional (opaque) arguments that are passed to fmriprep (NB: Use quotes and include at least one space character to prevent overearly parsing)', type=str, default='')
-    parser.add_argument('-q','--qargs',             help='Additional (opaque) arguments that are passed to qsub/sbatch (NB: Use quotes and include at least one space character to prevent overearly parsing)', type=str, default='')
+    parser.add_argument('-q','--qargs',             help='Additional arguments that are passed to qsub/sbatch (NB: Use quotes and include at least one space character to prevent overearly parsing)', type=str, default='')
     parser.add_argument('-d','--dryrun',            help='Add this flag to just print the fmriprep qsub commands without actually submitting them (useful for debugging)', action='store_true')
-    args = parser.parse_args()
+
+    # Parse only what we know
+    args, passthrough = parser.parse_known_args()
 
     # Catch old fmriprep outputdir behaviour
     if int(version.split('.')[0]) < 21 and args.outputdir and Path(args.outputdir).name != 'fmriprep':
@@ -177,12 +178,12 @@ if __name__ == "__main__":
              outputdir     = args.outputdir,
              workroot      = args.workdir,
              subject_label = args.participant_label,
-             force         = args.force,
+             force         = args.clobber,
              mem_mb        = args.mem_mb,
              walltime      = args.time,
              nthreads      = args.nthreads,
              file_gb_      = args.scratch_gb,
-             argstr        = args.args,
+             argstr        = " ".join(shlex.quote(a) for a in passthrough),
              qargstr       = args.qargs,
              dryrun        = args.dryrun,
-             skip          = args.ignore)
+             skip          = args.resubmit)
