@@ -1,0 +1,10 @@
+#!/bin/bash
+
+if [ -z "$FMRIPREP_VERSION" ]; then
+    echo "Error: FMRIPREP_VERSION not set. Load the module first."
+    exit 1
+fi
+
+SIF="$DCCN_OPT_DIR/fmriprep/$FMRIPREP_VERSION/fmriprep-$FMRIPREP_VERSION.simg"
+
+exec apptainer run --cleanenv "$SIF" "$@"
